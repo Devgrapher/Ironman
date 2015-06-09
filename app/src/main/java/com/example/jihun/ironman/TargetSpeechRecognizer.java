@@ -17,7 +17,8 @@ public class TargetSpeechRecognizer implements RecognitionListener {
     protected SpeechRecognizer speech_recog_;
     protected Activity parent_activity_;
     protected Listener listener_;
-    protected HashSet<String> target_speeches_ = new HashSet<String>();
+    protected String signal_speech_;
+    protected HashSet<String> target_speeches_ = new HashSet<>();
 
     public TargetSpeechRecognizer(Activity parent_activity, Listener listener) {
         parent_activity_ = parent_activity;
@@ -29,13 +30,14 @@ public class TargetSpeechRecognizer implements RecognitionListener {
         intent_.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US");
         intent_.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_WEB_SEARCH);
-        intent_.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
 
         speech_recog_ = SpeechRecognizer.createSpeechRecognizer(parent_activity_);
         speech_recog_.setRecognitionListener(this);
     }
 
-    public void setTargetSpeech(String[] speeches) {
+    public void setTargetSpeech(String signal, String[] speeches) {
+        // add a space to make it easier to compare with speech string.
+        signal_speech_ = signal + " ";
         for (String speech : speeches) {
             target_speeches_.add(speech);
         }
@@ -73,9 +75,13 @@ public class TargetSpeechRecognizer implements RecognitionListener {
             Log.d(TAG, match);
         }
         for (String match : results_in_arraylist) {
-            if (target_speeches_.contains(match)) {
-                Log.d(TAG, "Target matches: " + match);
-                return match;
+            if (!match.startsWith(signal_speech_)) {
+                continue;
+            }
+                String command = match.substring(signal_speech_.length());
+                if (target_speeches_.contains(command)) {
+                    Log.d(TAG, "Target matches: " + command);
+                    return command;
             }
         }
         return "";
@@ -89,7 +95,6 @@ public class TargetSpeechRecognizer implements RecognitionListener {
     @Override
     public void onBeginningOfSpeech() {
         Log.d(TAG, "onBeginningOfSpeech");
-        // speech input will be processed, so there is no need for count down anymore
     }
 
     @Override

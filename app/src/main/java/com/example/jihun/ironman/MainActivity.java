@@ -1,6 +1,9 @@
 package com.example.jihun.ironman;
 
 import android.app.Activity;
+import android.bluetooth.BluetoothAdapter;
+import android.content.Intent;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -10,13 +13,13 @@ import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-public class Main extends Activity {
+public class MainActivity extends Activity {
     private static final String TAG = "Ironman";
-    private Button btn_speech_;
+    private Button btn_connect_;
     private TextView txt_speach_result_;
     private ProgressBar prograss_bar_;
     private ContinuousTargetSpeechRecognizer signal_speech_recognizer_;
-    private TargetSpeechRecognizer command_speech_recognizer_;
+    private BluetoothAdapter bluetooth_;
 
     private final float kSpeechMinValue = -2.12f;
     private final int kSpeechMaxValue = 10;
@@ -38,16 +41,23 @@ public class Main extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        btn_speech_ = (Button) findViewById(R.id.buttonSpeach);
-        btn_speech_.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
+        View layout = findViewById(R.id.mainLayout);
+        GradientDrawable gd = new GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[] {0xFFF0FAFF,0xFFA3E0FF});
+        gd.setCornerRadius(0f);
+        layout.setBackground(gd);
 
-            }
-        });
+        btn_connect_ = (Button) findViewById(R.id.buttonConnect);
         prograss_bar_ = (ProgressBar)findViewById(R.id.progressBarSpeech);
         prograss_bar_.setMax(NormalizeSpeechValue(kSpeechMaxValue));
         txt_speach_result_ = (TextView) findViewById(R.id.textViewSpeachResult);
+
+    }
+
+    public void onPair(View v){
+        Intent intent = new Intent(getApplicationContext(), BluetoothPairActivity.class);
+        startActivity(intent);
     }
 
     @Override
@@ -56,12 +66,8 @@ public class Main extends Activity {
         super.onResume();
         signal_speech_recognizer_ =
                 new ContinuousTargetSpeechRecognizer(this, signal_listener_);
-        String[] signal = {kSignalSpeech};
-        signal_speech_recognizer_.setTargetSpeech(signal);
+        signal_speech_recognizer_.setTargetSpeech(kSignalSpeech, kCommandList);
         signal_speech_recognizer_.start();
-
-        command_speech_recognizer_ = new TargetSpeechRecognizer(this, command_listener_);
-        command_speech_recognizer_.setTargetSpeech(kCommandList);
     }
 
     @Override
@@ -70,8 +76,6 @@ public class Main extends Activity {
         super.onPause();
         signal_speech_recognizer_.stop();
         signal_speech_recognizer_.destroy();
-        command_speech_recognizer_.stop();
-        command_speech_recognizer_.destroy();
     }
 
     @Override
@@ -100,30 +104,7 @@ public class Main extends Activity {
             new TargetSpeechRecognizer.Listener() {
         @Override
         public void onEndListening(String speech) {
-            if (speech.equals(kSignalSpeech)) {
-                command_speech_recognizer_.start();
-            }
-            else {
-                Log.w(TAG, "signal speech is incorrect!");
-            }
-        }
-
-        @Override
-        public void onRmsChanged(float rmsdB) {
-            final int increament = NormalizeSpeechValue(rmsdB) - prograss_bar_.getProgress();
-            prograss_bar_.incrementProgressBy(increament);
-        }
-    };
-
-    protected TargetSpeechRecognizer.Listener command_listener_ =
-            new TargetSpeechRecognizer.Listener() {
-        @Override
-        public void onEndListening(String speech) {
-            if (!speech.isEmpty()) {
-                Log.i(TAG, "command recognized : " + speech);
-                txt_speach_result_.setText(speech);
-            }
-            signal_speech_recognizer_.start();
+            txt_speach_result_.setText(speech);
         }
 
         @Override

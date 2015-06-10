@@ -20,6 +20,8 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
@@ -58,7 +60,14 @@ public class BluetoothPairActivity extends Activity {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 String name = listview_devices_.getItemAtPosition(position).toString();
                 Log.d(TAG, "Connect name : " + name);
+                BluetoothDevice device = device_name_map_.get(name);
+                if (device == null) {
+                    Toast.makeText(getApplicationContext(),"Can't find the device!",
+                            Toast.LENGTH_LONG).show();
+                    return;
+                }
                 connect_thread_ = new ConnectThread(device_name_map_.get(name));
+                connect_thread_.start();
             }
         });
 
@@ -76,6 +85,13 @@ public class BluetoothPairActivity extends Activity {
     protected void onPause() {
         super.onPause();
         unregisterReceiver(receiver_);
+        if (connect_thread_ != null) {
+            connect_thread_.cancel();
+            try {
+                connect_thread_.join();
+            } catch (InterruptedException e) {
+            }
+        }
     }
 
     public void ClearDeviceList() {
@@ -90,21 +106,17 @@ public class BluetoothPairActivity extends Activity {
             return;
         }
 
-        //ClearDeviceList();
+        ClearDeviceList();
         UpdateBondedDevices();
         DiscorverDevices();
     }
 
     private void UpdateBondedDevices() {
         paired_devices_ = bluetooth_.getBondedDevices();
-        ArrayList list = new ArrayList();
 
         for(BluetoothDevice device : paired_devices_) {
-            Log.d(TAG, "bonded devices : " + device.getName() + "\n" + device.getAddress());
-            list.add(device.getName() + "\n" + device.getAddress());
-        }
-        if (!list.isEmpty()) {
-            listview_adapter_.add(list);
+            Log.d(TAG, "bonded devices : " + device.getName());
+            AddDevice(device);
         }
     }
 
@@ -116,14 +128,21 @@ public class BluetoothPairActivity extends Activity {
             if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                 // Get the BluetoothDevice object from the Intent
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                String name = device.getName() + "\n" + device.getAddress();
-                Log.d(TAG, "found devices : " + name);
+                Log.d(TAG, "found devices : " +  device.getName());
                 // Add the name and address to an array adapter to show in a ListView
-                listview_adapter_.add(name);
-                device_name_map_.put(name, device);
+                AddDevice(device);
             }
         }
     };
+
+    private void AddDevice(BluetoothDevice device) {
+        String name = device.getName() + "\n" + device.getAddress();
+        if (!device_name_map_.containsKey(name)) {
+            listview_adapter_.add(name);
+        }
+        // Even if the map already has the device, put the object again to have the new device object
+        device_name_map_.put(name, device);
+    }
 
     private void DiscorverDevices() {
         // Register the BroadcastReceiver
@@ -167,11 +186,17 @@ public class BluetoothPairActivity extends Activity {
             BluetoothSocket tmp = null;
             device_ = device;
 
+            // The uuid that I want to connect to.
+            // This value of uuid is for Serial Communication.
+            // http://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#createRfcommSocketToServiceRecord(java.util.UUID)
+            // https://www.bluetooth.org/en-us/specification/assigned-numbers/service-discovery
+            UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
             // Get a BluetoothSocket to connect with the given BluetoothDevice
             try {
-                // MY_UUID is the app's UUID string, also used by the server code
-                tmp = device.createRfcommSocketToServiceRecord(UUID.randomUUID());
-            } catch (IOException e) { }
+                tmp = device_.createRfcommSocketToServiceRecord(uuid);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             socket_ = tmp;
         }
 
@@ -182,14 +207,24 @@ public class BluetoothPairActivity extends Activity {
             try {
                 // Connect the device through the socket. This will block
                 // until it succeeds or throws an exception
+                Log.d(TAG, "Connect...");
                 socket_.connect();
             } catch (IOException connectException) {
+                connectException.printStackTrace();
                 // Unable to connect; close the socket and get out
                 try {
                     socket_.close();
                 } catch (IOException closeException) { }
                 return;
             }
+
+            Log.d(TAG, "Connected");
+
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    Toast.makeText(getApplicationContext(), "Connected", Toast.LENGTH_SHORT).show();
+                }
+            });
 
             // Do work to manage the connection (in a separate thread)
             //manageConnectedSocket(socket_);
@@ -199,7 +234,9 @@ public class BluetoothPairActivity extends Activity {
         public void cancel() {
             try {
                 socket_.close();
-            } catch (IOException e) { }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 }

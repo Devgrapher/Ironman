@@ -2,6 +2,7 @@ package com.example.jihun.ironman;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
@@ -12,6 +13,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends Activity {
     private static final String TAG = "Ironman";
@@ -19,7 +21,7 @@ public class MainActivity extends Activity {
     private TextView txt_speach_result_;
     private ProgressBar prograss_bar_;
     private ContinuousTargetSpeechRecognizer signal_speech_recognizer_;
-    private BluetoothAdapter bluetooth_;
+    private BluetoothSerial bluetooth_;
 
     private final float kSpeechMinValue = -2.12f;
     private final int kSpeechMaxValue = 10;
@@ -57,7 +59,7 @@ public class MainActivity extends Activity {
 
     public void onPair(View v){
         Intent intent = new Intent(getApplicationContext(), BluetoothPairActivity.class);
-        startActivity(intent);
+        startActivityForResult(intent, 0);
     }
 
     @Override
@@ -100,6 +102,15 @@ public class MainActivity extends Activity {
         return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent intent) {
+        if (resultCode == RESULT_OK) {
+            BluetoothDevice device = intent.getParcelableExtra("device");
+            bluetooth_ = new BluetoothSerial();
+            bluetooth_.askConnect(device, bluetooth_listener_);
+        }
+    }
+
     protected TargetSpeechRecognizer.Listener signal_listener_ =
             new TargetSpeechRecognizer.Listener() {
         @Override
@@ -111,6 +122,24 @@ public class MainActivity extends Activity {
         public void onRmsChanged(float rmsdB) {
             final int increament = NormalizeSpeechValue(rmsdB) - prograss_bar_.getProgress();
             prograss_bar_.incrementProgressBy(increament);
+        }
+    };
+
+    protected  BluetoothSerial.Listener bluetooth_listener_ = new BluetoothSerial.Listener() {
+        @Override
+        public void onConnect(BluetoothDevice device) {
+            Toast.makeText(getApplicationContext(), "Connected", Toast.LENGTH_SHORT).show();
+        }
+
+        @Override
+        public void onRead(BluetoothDevice device, byte[] data) {
+
+        }
+
+        @Override
+        public void onDisconnect(BluetoothDevice device) {
+            Toast.makeText(getApplicationContext(), "Disconnected",
+                    Toast.LENGTH_SHORT).show();
         }
     };
 }

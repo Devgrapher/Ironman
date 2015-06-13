@@ -20,6 +20,13 @@ public class TargetSpeechRecognizer implements RecognitionListener {
     protected String signal_speech_;
     protected HashSet<String> target_speeches_ = new HashSet<>();
 
+    public interface Listener {
+        // called on finish of recognizing with words list that were recognized.
+        void onEndListening(String speech);
+        // notifying sound level.
+        void onRmsChanged(float rmsdB);
+    }
+
     public TargetSpeechRecognizer(Activity parent_activity, Listener listener) {
         parent_activity_ = parent_activity;
         listener_ = listener;
@@ -132,12 +139,5 @@ public class TargetSpeechRecognizer implements RecognitionListener {
 
     @Override
     public void onEvent(int eventType, Bundle params) {
-    }
-
-    public interface Listener {
-        // called on finish of recognizing with words list that were recognized.
-        void onEndListening(String speech);
-        // notifying sound level.
-        void onRmsChanged(float rmsdB);
     }
 }

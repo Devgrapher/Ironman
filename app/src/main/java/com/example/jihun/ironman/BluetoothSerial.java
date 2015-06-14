@@ -3,7 +3,6 @@ package com.example.jihun.ironman;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
@@ -11,6 +10,7 @@ import android.util.Log;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.UUID;
 
 /**
@@ -32,7 +32,7 @@ public class BluetoothSerial {
 
     public interface Listener {
         void onConnect(BluetoothDevice device);
-        void onRead(BluetoothDevice device, byte[] data);
+        void onRead(BluetoothDevice device, byte[] data, int len);
         void onDisconnect(BluetoothDevice device);
     }
 
@@ -173,8 +173,12 @@ public class BluetoothSerial {
                 try {
                     // Read from the InputStream
                     bytes = input_stream_.read(buffer);
+                    // TODO: To prevent memory allocation each time,
+                    // it may need a byte queue and synchronization.
+                    byte[] fragment = Arrays.copyOf(buffer, bytes);
+
                     // Send the obtained bytes to the UI activity
-                    read_handler_.obtainMessage(kMsgReadBluetooth, bytes, 0, buffer)
+                    read_handler_.obtainMessage(kMsgReadBluetooth, bytes, -1, fragment)
                             .sendToTarget();
                 } catch (IOException e) {
                     break;
@@ -191,7 +195,7 @@ public class BluetoothSerial {
                     listener_.onConnect(device_);
                     break;
                 case kMsgReadBluetooth:
-                    listener_.onRead(device_, (byte[])msg.obj);
+                    listener_.onRead(device_, (byte[])msg.obj, msg.arg1);
                     break;
             }
         }

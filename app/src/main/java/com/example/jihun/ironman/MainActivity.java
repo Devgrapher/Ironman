@@ -1,7 +1,6 @@
 package com.example.jihun.ironman;
 
 import android.app.Activity;
-import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.graphics.drawable.GradientDrawable;
@@ -13,7 +12,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 public class MainActivity extends Activity {
     private static final String TAG = "Ironman";
@@ -21,7 +19,7 @@ public class MainActivity extends Activity {
     private TextView txt_speach_result_;
     private ProgressBar prograss_bar_;
     private ContinuousTargetSpeechRecognizer signal_speech_recognizer_;
-    private BluetoothSerial bluetooth_;
+    private ArduinoConnector arduinoConnector_;
 
     private final float kSpeechMinValue = -2.12f;
     private final int kSpeechMaxValue = 10;
@@ -54,7 +52,7 @@ public class MainActivity extends Activity {
         prograss_bar_ = (ProgressBar)findViewById(R.id.progressBarSpeech);
         prograss_bar_.setMax(NormalizeSpeechValue(kSpeechMaxValue));
         txt_speach_result_ = (TextView) findViewById(R.id.textViewSpeachResult);
-
+        arduinoConnector_ = new ArduinoConnector(getApplicationContext());
     }
 
     public void onPair(View v){
@@ -70,6 +68,12 @@ public class MainActivity extends Activity {
                 new ContinuousTargetSpeechRecognizer(this, signal_listener_);
         signal_speech_recognizer_.setTargetSpeech(kSignalSpeech, kCommandList);
         signal_speech_recognizer_.start();
+    }
+
+    @Override
+    protected void finalize() {
+        super.finish();
+        arduinoConnector_.destroy();
     }
 
     @Override
@@ -106,40 +110,22 @@ public class MainActivity extends Activity {
     public void onActivityResult(int requestCode, int resultCode, Intent intent) {
         if (resultCode == RESULT_OK) {
             BluetoothDevice device = intent.getParcelableExtra("device");
-            bluetooth_ = new BluetoothSerial();
-            bluetooth_.askConnect(device, bluetooth_listener_);
+            arduinoConnector_.connect(device);
         }
     }
 
     protected TargetSpeechRecognizer.Listener signal_listener_ =
-            new TargetSpeechRecognizer.Listener() {
+        new TargetSpeechRecognizer.Listener() {
         @Override
         public void onEndListening(String speech) {
             txt_speach_result_.setText(speech);
+            arduinoConnector_.send(speech);
         }
 
         @Override
         public void onRmsChanged(float rmsdB) {
-            final int increament = NormalizeSpeechValue(rmsdB) - prograss_bar_.getProgress();
-            prograss_bar_.incrementProgressBy(increament);
-        }
-    };
-
-    protected  BluetoothSerial.Listener bluetooth_listener_ = new BluetoothSerial.Listener() {
-        @Override
-        public void onConnect(BluetoothDevice device) {
-            Toast.makeText(getApplicationContext(), "Connected", Toast.LENGTH_SHORT).show();
-        }
-
-        @Override
-        public void onRead(BluetoothDevice device, byte[] data) {
-
-        }
-
-        @Override
-        public void onDisconnect(BluetoothDevice device) {
-            Toast.makeText(getApplicationContext(), "Disconnected",
-                    Toast.LENGTH_SHORT).show();
+            final int increment = NormalizeSpeechValue(rmsdB) - prograss_bar_.getProgress();
+            prograss_bar_.incrementProgressBy(increment);
         }
     };
 }

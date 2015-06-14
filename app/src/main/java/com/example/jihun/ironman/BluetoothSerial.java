@@ -28,7 +28,7 @@ public class BluetoothSerial {
     private BluetoothSocket socket_;
     private BluetoothDevice device_;
     private ReadHandler read_handler_;
-    private OutputStream output_stream_;
+    private OutputStream output_stream_ = null;
 
     public interface Listener {
         void onConnect(BluetoothDevice device);
@@ -52,6 +52,9 @@ public class BluetoothSerial {
     }
 
     public void Write(byte[] bytes) {
+        if (output_stream_ == null) {
+            return;
+        }
         try {
             output_stream_.write(bytes);
         } catch (IOException e) {

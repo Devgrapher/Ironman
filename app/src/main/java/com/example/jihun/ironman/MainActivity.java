@@ -118,6 +118,8 @@ public class MainActivity extends Activity {
         new TargetSpeechRecognizer.Listener() {
         @Override
         public void onEndListening(String speech) {
+            if (speech.isEmpty())
+                return;
             txt_speach_result_.setText(speech);
             arduinoConnector_.send(speech);
         }

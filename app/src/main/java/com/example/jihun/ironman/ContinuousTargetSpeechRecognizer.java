@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.media.AudioManager;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Messenger;
@@ -13,7 +14,7 @@ import android.util.Log;
 import java.lang.ref.WeakReference;
 
 public class ContinuousTargetSpeechRecognizer extends TargetSpeechRecognizer {
-    static final int kMsgRecognizerStartListening = 1;
+    static final int kMsgRecognizerStart = 1;
     static final int kMsgRecognizerStop = 2;
 
     private final Messenger server_messenger_ = new Messenger(new IncomingHandler(this));
@@ -23,12 +24,24 @@ public class ContinuousTargetSpeechRecognizer extends TargetSpeechRecognizer {
         super(parent_activity, listener);
     }
 
+    public void run() {
+        Message message = Message.obtain(null, kMsgRecognizerStart);
+        try {
+            server_messenger_.send(message);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    @Override
     public void start() {
         sound_controllor_.soundOff();
         super.start();
         listener_.onRmsChanged(0);
     }
 
+    @Override
     public void stop() {
         super.stop();
         sound_controllor_.soundOn();
@@ -50,8 +63,9 @@ public class ContinuousTargetSpeechRecognizer extends TargetSpeechRecognizer {
         // super.onError(error);
 
         Log.d(TAG, "onError for speech: " + error);
+
         // start listening again.
-        Message message = Message.obtain(null, kMsgRecognizerStartListening);
+        Message message = Message.obtain(null, kMsgRecognizerStart);
         try {
             server_messenger_.send(message);
         } catch (RemoteException e) {
@@ -61,12 +75,14 @@ public class ContinuousTargetSpeechRecognizer extends TargetSpeechRecognizer {
 
     @Override
     public void onResults(Bundle results) {
+        Log.d(TAG, "onResult");
+
         String match = processMatchResult(results);
         if (!match.isEmpty()) {
             listener_.onEndListening(match);
         }
         // keep listening...
-        Message message = Message.obtain(null, kMsgRecognizerStartListening);
+        Message message = Message.obtain(null, kMsgRecognizerStart);
         try {
             server_messenger_.send(message);
         } catch (RemoteException e) {
@@ -86,7 +102,7 @@ public class ContinuousTargetSpeechRecognizer extends TargetSpeechRecognizer {
             final ContinuousTargetSpeechRecognizer target = target_.get();
 
             switch (msg.what) {
-                case kMsgRecognizerStartListening:
+                case kMsgRecognizerStart:
                     Log.d(TAG, "message start listening");
                     // turn off beep sound
                     target.sound_controllor_.soundOff();

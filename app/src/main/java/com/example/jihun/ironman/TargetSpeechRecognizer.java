@@ -53,14 +53,14 @@ public class TargetSpeechRecognizer implements RecognitionListener {
     public void start() {
         Log.i(TAG, "start listening");
         if (target_speeches_.isEmpty()) {
-            Log.w(TAG, "target speech list is emtpy");
+            Log.w(TAG, "target speech list is empty");
         }
         speech_recog_.startListening(intent_);
     }
 
     public void stop() {
         if (speech_recog_ != null) {
-            speech_recog_.stopListening();
+            speech_recog_.cancel();
         }
         Log.i(TAG, "stop listening");
     }

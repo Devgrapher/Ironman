@@ -13,15 +13,27 @@ import java.util.StringTokenizer;
  */
 public class ArduinoConnector {
     protected Context application_context_;
-    protected BluetoothSerial bluetooth_ = new BluetoothSerial();
+    protected BluetoothSerial bluetooth_;
 
     public ArduinoConnector(Context application_context) {
         application_context_ = application_context;
     }
 
     public void connect(BluetoothDevice device) {
+        if (bluetooth_ != null) {
+            disconnect();
+        }
         bluetooth_ = new BluetoothSerial();
         bluetooth_.askConnect(device, bluetooth_listener_);
+    }
+
+    public boolean isConnected() {
+        return bluetooth_.isConnected();
+    }
+
+    public void disconnect() {
+        bluetooth_.cancel();
+        bluetooth_ = null;
     }
 
     public void send(String command) {

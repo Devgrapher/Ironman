@@ -51,6 +51,13 @@ public class BluetoothSerial {
         connect_thread_.start();
     }
 
+    public boolean isConnected() {
+        if (read_thread_ == null) {
+            return false;
+        }
+        return read_thread_.isAlive();
+    }
+
     public void Write(byte[] bytes) {
         if (output_stream_ == null) {
             return;
@@ -67,6 +74,13 @@ public class BluetoothSerial {
             connect_thread_.cancel();
             connect_thread_ = null;
         }
+
+        try {
+            socket_.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         if (read_thread_ != null) {
             try {
                 read_thread_.join();
@@ -74,11 +88,6 @@ public class BluetoothSerial {
                 e.printStackTrace();
             }
             read_thread_ = null;
-        }
-        try {
-            socket_.close();
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 

@@ -94,7 +94,7 @@ public class ContinuousTargetSpeechRecognizer extends TargetSpeechRecognizer {
         private WeakReference<ContinuousTargetSpeechRecognizer> target_;
 
         IncomingHandler(ContinuousTargetSpeechRecognizer target) {
-            target_ = new WeakReference<ContinuousTargetSpeechRecognizer>(target);
+            target_ = new WeakReference<>(target);
         }
 
         @Override
@@ -106,11 +106,6 @@ public class ContinuousTargetSpeechRecognizer extends TargetSpeechRecognizer {
                     Log.d(TAG, "message start listening");
                     // turn off beep sound
                     target.sound_controllor_.soundOff();
-                    try {
-                        Thread.sleep(500);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
                     target.start();
                     break;
 

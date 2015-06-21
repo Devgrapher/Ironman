@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
 import android.os.Bundle;
-import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Messenger;
@@ -17,18 +16,17 @@ import android.util.Log;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.HashSet;
 
-/*
-    Runs SpeechRecognizer continuously.
-
-    By default, SpeechRecognizer ends in 5 seconds after starting.
-    So this class runs the recognizer over and over.
-
-    It waits for the target speeches that were set by 'setTargetSpeech'
-    Upon catching the targets, it notifies the client via 'Listener' interface.
+/**
+ * Runs SpeechRecognizer continuously.
+ *
+ * By default, SpeechRecognizer ends in 5 seconds after starting.
+ * So this class runs the recognizer over and over.
+ *
+ * It waits for the target speeches that were set by 'setTargetSpeech'
+ * Upon catching the targets, it notifies the client via 'Listener' interface.
  */
-public class ContinuousTargetSpeechRecognizer implements RecognitionListener {
+public class ContinuousSpeechRecognizer implements RecognitionListener {
     private static final int kMsgRecognizerStart = 1;
     private static final int kMsgRecognizerStop = 2;
     private static final String TAG = "Ironman.SR";
@@ -36,22 +34,21 @@ public class ContinuousTargetSpeechRecognizer implements RecognitionListener {
     private SpeechRecognizer speech_recog_;
     private Intent intent_;
     private Activity parent_activity_;
+    private SpeechListener speech_listener_;
     private Listener listener_;
-    private String signal_speech_;
-    private HashSet<String> target_speeches_ = new HashSet<>();
     private final SoundController sound_controllor_;
     private final Messenger server_messenger_ = new Messenger(new IncomingHandler(this));
 
     public interface Listener {
-        // called on finish of recognizing with words list that were recognized.
-        void onEndListening(String speech);
         // notifying sound level.
-        void onRmsChanged(float rmsdB);
+        void onSoundChanged(float rmsdB);
     }
 
-    public ContinuousTargetSpeechRecognizer(Activity parent_activity, Listener listener) {
+    public ContinuousSpeechRecognizer(Activity parent_activity, Listener listener,
+                                      SpeechListener speech_listener) {
         parent_activity_ = parent_activity;
         listener_ = listener;
+        speech_listener_ = speech_listener;
 
         sound_controllor_ = new SoundController();
 
@@ -67,25 +64,14 @@ public class ContinuousTargetSpeechRecognizer implements RecognitionListener {
         speech_recog_.setRecognitionListener(this);
     }
 
-    public void setTargetSpeech(String signal, String[] speeches) {
-        // add a space to make it easier to compare with speech string.
-        signal_speech_ = signal + " ";
-        for (String speech : speeches) {
-            target_speeches_.add(speech);
-        }
-    }
-
     // start speech recognizing
     public void start() {
         sound_controllor_.soundOff();
 
         Log.i(TAG, "start listening");
-        if (target_speeches_.isEmpty()) {
-            Log.w(TAG, "target speech list is empty");
-        }
         speech_recog_.startListening(intent_);
 
-        listener_.onRmsChanged(0);
+        listener_.onSoundChanged(0);
     }
 
     // stop speech recognizing
@@ -101,31 +87,6 @@ public class ContinuousTargetSpeechRecognizer implements RecognitionListener {
     // should be called before app terminates
     public void destroy() {
         speech_recog_.destroy();
-    }
-
-    // find the target speech in recognized speech results.
-    private String processMatchResult(Bundle results) {
-        ArrayList<String> results_in_arraylist =
-                results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-        if (results == null) {
-            Log.e(TAG, "No voice results");
-            return "";
-        }
-        Log.d(TAG, "Printing matches: ");
-        for (String match : results_in_arraylist) {
-            Log.d(TAG, match);
-        }
-        for (String match : results_in_arraylist) {
-            if (!match.startsWith(signal_speech_)) {
-                continue;
-            }
-            String command = match.substring(signal_speech_.length());
-            if (target_speeches_.contains(command)) {
-                Log.d(TAG, "Target matches: " + command);
-                return command;
-            }
-        }
-        return "";
     }
 
     /*
@@ -146,7 +107,7 @@ public class ContinuousTargetSpeechRecognizer implements RecognitionListener {
     public void onRmsChanged(float rmsdB) {
         // it's too noisy
         //Log.d(TAG, "onRmsChanged: " + rmsdB);
-        listener_.onRmsChanged(rmsdB);
+        listener_.onSoundChanged(rmsdB);
     }
 
     @Override
@@ -176,10 +137,15 @@ public class ContinuousTargetSpeechRecognizer implements RecognitionListener {
     public void onResults(Bundle results) {
         Log.d(TAG, "onResult");
 
-        String match = processMatchResult(results);
-        if (!match.isEmpty()) {
-            listener_.onEndListening(match);
+        ArrayList<String> results_in_arraylist =
+                results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+
+        // notifies the speeches each by each.
+        for (String speech : results_in_arraylist) {
+            Log.d(TAG, "match: " + speech);
+            speech_listener_.onSpeechRecognized(speech);
         }
+
         // keep listening...
         Message message = Message.obtain(null, kMsgRecognizerStart);
         try {
@@ -196,15 +162,15 @@ public class ContinuousTargetSpeechRecognizer implements RecognitionListener {
     public void onEvent(int eventType, Bundle params) {}
 
     private static class IncomingHandler extends Handler {
-        private WeakReference<ContinuousTargetSpeechRecognizer> target_;
+        private WeakReference<ContinuousSpeechRecognizer> target_;
 
-        IncomingHandler(ContinuousTargetSpeechRecognizer target) {
+        IncomingHandler(ContinuousSpeechRecognizer target) {
             target_ = new WeakReference<>(target);
         }
 
         @Override
         public void handleMessage(Message msg) {
-            final ContinuousTargetSpeechRecognizer target = target_.get();
+            final ContinuousSpeechRecognizer target = target_.get();
 
             switch (msg.what) {
                 case kMsgRecognizerStart:

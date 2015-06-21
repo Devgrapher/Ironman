@@ -9,28 +9,35 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 
 public class MainActivity extends Activity {
     private static final String TAG = "Ironman";
     private TextView txt_speach_result_;
     private ProgressBar prograss_bar_;
-    private ContinuousTargetSpeechRecognizer signal_speech_recognizer_;
+    private ContinuousSpeechRecognizer speech_recognizer_;
     private ArduinoConnector arduinoConnector_;
 
-    // max speech value from SpeechRecognizer
+    // Max speech value from SpeechRecognizer
     private final float kSpeechMinValue = -2.12f;
-    // min speech value from SpeechRecognizer
+    // Min speech value from SpeechRecognizer
     private final int kSpeechMaxValue = 10;
-    // the value for magnifying to display on prograss bar.
+    // The value for magnifying to display on prograss bar.
     private final int kSpeechMagnifyingValue = 100;
-    // the signal speech that the recognition starts with.
+    // The signal speech that the recognition starts with.
     private final String kSignalSpeech = "Lucy";
-    // the commands ordered in speech.
-    private final String[] kCommandList = {
-            "light on", "light off", "music on", "music off"};
+    // The commands ordered in speech.
+    private final String kCommandLightOn = "light on";
+    private final String[] kCommandLightOnVariant =
+            { "lights on", "lite on", "like on"};
+    private final String kCommandLightOff = "light off";
+    private final String[] kCommandLightOffVariant =
+            { "lights off", "light of", "like talked"};
+
 
     private int normalizeSpeechValue(float value) {
         return (int)((value + Math.abs(kSpeechMinValue)) * kSpeechMagnifyingValue);
@@ -42,7 +49,7 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // set gradient background color.
+        // Set gradient background color.
         View layout = findViewById(R.id.mainLayout);
         GradientDrawable gd = new GradientDrawable(
                 GradientDrawable.Orientation.TOP_BOTTOM,
@@ -53,36 +60,39 @@ public class MainActivity extends Activity {
         prograss_bar_ = (ProgressBar)findViewById(R.id.progressBarSpeech);
         prograss_bar_.setMax(normalizeSpeechValue(kSpeechMaxValue));
         txt_speach_result_ = (TextView) findViewById(R.id.textViewSpeachResult);
+
+        // Wraps 'speech_listener_' in 'Filter classes', so that it only gets filtered speeches.
+        CommandSpeechFilter cmd_filter = new CommandSpeechFilter(speech_listener_);
+        cmd_filter.addPattern(kCommandLightOn,
+                new ArrayList<>(Arrays.asList(kCommandLightOnVariant)));
+        cmd_filter.addPattern(kCommandLightOff,
+                new ArrayList<>(Arrays.asList(kCommandLightOffVariant)));
+        SignalSpeechFilter signal_filter = new SignalSpeechFilter(cmd_filter, kSignalSpeech);
+        speech_recognizer_ = new ContinuousSpeechRecognizer(
+                this, speech_recognizer_listener_, signal_filter);
+
         arduinoConnector_ = new ArduinoConnector(getApplicationContext());
-    }
-
-    public void onPair(View v){
-        Intent intent = new Intent(getApplicationContext(), BluetoothPairActivity.class);
-        startActivityForResult(intent, 0);
-    }
-
-    @Override
-    protected void onResume() {
-        Log.d(TAG, "onResume");
-        super.onResume();
-        signal_speech_recognizer_ =
-                new ContinuousTargetSpeechRecognizer(this, signal_listener_);
-        signal_speech_recognizer_.setTargetSpeech(kSignalSpeech, kCommandList);
-        signal_speech_recognizer_.start();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         arduinoConnector_.destroy();
+        speech_recognizer_.destroy();
+    }
+
+    @Override
+    protected void onResume() {
+        Log.d(TAG, "onResume");
+        super.onResume();
+        speech_recognizer_.start();
     }
 
     @Override
     protected void onPause() {
         Log.d(TAG, "onPause");
         super.onPause();
-        signal_speech_recognizer_.stop();
-        signal_speech_recognizer_.destroy();
+        speech_recognizer_.stop();
     }
 
     @Override
@@ -99,7 +109,7 @@ public class MainActivity extends Activity {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
+        // Noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             return true;
         }
@@ -115,10 +125,15 @@ public class MainActivity extends Activity {
         }
     }
 
-    private ContinuousTargetSpeechRecognizer.Listener signal_listener_ =
-        new ContinuousTargetSpeechRecognizer.Listener() {
+    public void onPair(View v){
+        Intent intent = new Intent(getApplicationContext(), BluetoothPairActivity.class);
+        startActivityForResult(intent, 0);
+    }
+
+    // Handles the speeches delivered by ContinuousSpeechRecognizer.
+    private SpeechListener speech_listener_ = new SpeechListener() {
         @Override
-        public void onEndListening(String speech) {
+        public void onSpeechRecognized(String speech) {
             if (speech.isEmpty())
                 return;
             txt_speach_result_.setText(speech);
@@ -129,9 +144,12 @@ public class MainActivity extends Activity {
                 throw e;
             }
         }
+    };
 
+    private ContinuousSpeechRecognizer.Listener speech_recognizer_listener_ =
+        new ContinuousSpeechRecognizer.Listener() {
         @Override
-        public void onRmsChanged(float rmsdB) {
+        public void onSoundChanged(float rmsdB) {
             final int increment = normalizeSpeechValue(rmsdB) - prograss_bar_.getProgress();
             prograss_bar_.incrementProgressBy(increment);
         }

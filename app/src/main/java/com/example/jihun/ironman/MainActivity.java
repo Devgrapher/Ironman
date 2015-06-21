@@ -15,13 +15,14 @@ import android.widget.TextView;
 
 public class MainActivity extends Activity {
     private static final String TAG = "Ironman";
-    private Button btn_connect_;
     private TextView txt_speach_result_;
     private ProgressBar prograss_bar_;
     private ContinuousTargetSpeechRecognizer signal_speech_recognizer_;
     private ArduinoConnector arduinoConnector_;
 
+    // max speech value from SpeechRecognizer
     private final float kSpeechMinValue = -2.12f;
+    // min speech value from SpeechRecognizer
     private final int kSpeechMaxValue = 10;
     // the value for magnifying to display on prograss bar.
     private final int kSpeechMagnifyingValue = 100;
@@ -31,7 +32,7 @@ public class MainActivity extends Activity {
     private final String[] kCommandList = {
             "light on", "light off", "music on", "music off"};
 
-    protected int NormalizeSpeechValue(float value) {
+    private int normalizeSpeechValue(float value) {
         return (int)((value + Math.abs(kSpeechMinValue)) * kSpeechMagnifyingValue);
     }
 
@@ -41,6 +42,7 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // set gradient background color.
         View layout = findViewById(R.id.mainLayout);
         GradientDrawable gd = new GradientDrawable(
                 GradientDrawable.Orientation.TOP_BOTTOM,
@@ -48,9 +50,8 @@ public class MainActivity extends Activity {
         gd.setCornerRadius(0f);
         layout.setBackground(gd);
 
-        btn_connect_ = (Button) findViewById(R.id.buttonConnect);
         prograss_bar_ = (ProgressBar)findViewById(R.id.progressBarSpeech);
-        prograss_bar_.setMax(NormalizeSpeechValue(kSpeechMaxValue));
+        prograss_bar_.setMax(normalizeSpeechValue(kSpeechMaxValue));
         txt_speach_result_ = (TextView) findViewById(R.id.textViewSpeachResult);
         arduinoConnector_ = new ArduinoConnector(getApplicationContext());
     }
@@ -61,7 +62,7 @@ public class MainActivity extends Activity {
     }
 
     @Override
-    public void onResume() {
+    protected void onResume() {
         Log.d(TAG, "onResume");
         super.onResume();
         signal_speech_recognizer_ =
@@ -114,8 +115,8 @@ public class MainActivity extends Activity {
         }
     }
 
-    protected TargetSpeechRecognizer.Listener signal_listener_ =
-        new TargetSpeechRecognizer.Listener() {
+    private ContinuousTargetSpeechRecognizer.Listener signal_listener_ =
+        new ContinuousTargetSpeechRecognizer.Listener() {
         @Override
         public void onEndListening(String speech) {
             if (speech.isEmpty())
@@ -131,7 +132,7 @@ public class MainActivity extends Activity {
 
         @Override
         public void onRmsChanged(float rmsdB) {
-            final int increment = NormalizeSpeechValue(rmsdB) - prograss_bar_.getProgress();
+            final int increment = normalizeSpeechValue(rmsdB) - prograss_bar_.getProgress();
             prograss_bar_.incrementProgressBy(increment);
         }
     };

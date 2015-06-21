@@ -2,6 +2,7 @@ package com.example.jihun.ironman;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -9,59 +10,157 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
 import android.util.Log;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.HashSet;
 
-public class ContinuousTargetSpeechRecognizer extends TargetSpeechRecognizer {
-    static final int kMsgRecognizerStart = 1;
-    static final int kMsgRecognizerStop = 2;
+/*
+    Runs SpeechRecognizer continuously.
 
+    By default, SpeechRecognizer ends in 5 seconds after starting.
+    So this class runs the recognizer over and over.
+
+    It waits for the target speeches that were set by 'setTargetSpeech'
+    Upon catching the targets, it notifies the client via 'Listener' interface.
+ */
+public class ContinuousTargetSpeechRecognizer implements RecognitionListener {
+    private static final int kMsgRecognizerStart = 1;
+    private static final int kMsgRecognizerStop = 2;
+    private static final String TAG = "Ironman.SR";
+
+    private SpeechRecognizer speech_recog_;
+    private Intent intent_;
+    private Activity parent_activity_;
+    private Listener listener_;
+    private String signal_speech_;
+    private HashSet<String> target_speeches_ = new HashSet<>();
+    private final SoundController sound_controllor_;
     private final Messenger server_messenger_ = new Messenger(new IncomingHandler(this));
-    private SoundController sound_controllor_ = new SoundController();
+
+    public interface Listener {
+        // called on finish of recognizing with words list that were recognized.
+        void onEndListening(String speech);
+        // notifying sound level.
+        void onRmsChanged(float rmsdB);
+    }
 
     public ContinuousTargetSpeechRecognizer(Activity parent_activity, Listener listener) {
-        super(parent_activity, listener);
+        parent_activity_ = parent_activity;
+        listener_ = listener;
+
+        sound_controllor_ = new SoundController();
+
+        // set intent for speech recognizer
+        intent_ = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent_.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE,
+                parent_activity_.getPackageName());
+        intent_.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US");
+        intent_.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_WEB_SEARCH);
+
+        speech_recog_ = SpeechRecognizer.createSpeechRecognizer(parent_activity_);
+        speech_recog_.setRecognitionListener(this);
     }
 
-    public void run() {
-        Message message = Message.obtain(null, kMsgRecognizerStart);
-        try {
-            server_messenger_.send(message);
-        } catch (RemoteException e) {
-            e.printStackTrace();
+    public void setTargetSpeech(String signal, String[] speeches) {
+        // add a space to make it easier to compare with speech string.
+        signal_speech_ = signal + " ";
+        for (String speech : speeches) {
+            target_speeches_.add(speech);
         }
-
     }
 
-    @Override
+    // start speech recognizing
     public void start() {
         sound_controllor_.soundOff();
-        super.start();
+
+        Log.i(TAG, "start listening");
+        if (target_speeches_.isEmpty()) {
+            Log.w(TAG, "target speech list is empty");
+        }
+        speech_recog_.startListening(intent_);
+
         listener_.onRmsChanged(0);
     }
 
-    @Override
+    // stop speech recognizing
     public void stop() {
-        super.stop();
+        if (speech_recog_ != null) {
+            speech_recog_.cancel();
+        }
+        Log.i(TAG, "stop listening");
+
         sound_controllor_.soundOn();
     }
 
+    // should be called before app terminates
+    public void destroy() {
+        speech_recog_.destroy();
+    }
+
+    // find the target speech in recognized speech results.
+    private String processMatchResult(Bundle results) {
+        ArrayList<String> results_in_arraylist =
+                results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+        if (results == null) {
+            Log.e(TAG, "No voice results");
+            return "";
+        }
+        Log.d(TAG, "Printing matches: ");
+        for (String match : results_in_arraylist) {
+            Log.d(TAG, match);
+        }
+        for (String match : results_in_arraylist) {
+            if (!match.startsWith(signal_speech_)) {
+                continue;
+            }
+            String command = match.substring(signal_speech_.length());
+            if (target_speeches_.contains(command)) {
+                Log.d(TAG, "Target matches: " + command);
+                return command;
+            }
+        }
+        return "";
+    }
+
+    /*
+        implements RecognitionListener interface below
+    */
+
     @Override
     public void onReadyForSpeech(Bundle params) {
-        super.onReadyForSpeech(params);
+        Log.d(TAG, "onReadyForSpeech");
     }
 
     @Override
     public void onBeginningOfSpeech() {
-        super.onBeginningOfSpeech();
+        Log.d(TAG, "onBeginningOfSpeech");
+    }
+
+    @Override
+    public void onRmsChanged(float rmsdB) {
+        // it's too noisy
+        //Log.d(TAG, "onRmsChanged: " + rmsdB);
+        listener_.onRmsChanged(rmsdB);
+    }
+
+    @Override
+    public void onBufferReceived(byte[] buffer) {
+        Log.d(TAG, "onBufferReceived");
+    }
+
+    @Override
+    public void onEndOfSpeech() {
+        Log.d(TAG, "onEndOfSpeech");
     }
 
     @Override
     public void onError(int error) {
-        // DO NOT call super method since onEndListening is being calling.
-        // super.onError(error);
-
         Log.d(TAG, "onError for speech: " + error);
 
         // start listening again.
@@ -90,7 +189,13 @@ public class ContinuousTargetSpeechRecognizer extends TargetSpeechRecognizer {
         }
     }
 
-    protected static class IncomingHandler extends Handler {
+    @Override
+    public void onPartialResults(Bundle partialResults) {}
+
+    @Override
+    public void onEvent(int eventType, Bundle params) {}
+
+    private static class IncomingHandler extends Handler {
         private WeakReference<ContinuousTargetSpeechRecognizer> target_;
 
         IncomingHandler(ContinuousTargetSpeechRecognizer target) {
@@ -118,7 +223,8 @@ public class ContinuousTargetSpeechRecognizer extends TargetSpeechRecognizer {
         }
     }
 
-    protected class SoundController {
+    // system sound on / off controller.
+    private class SoundController {
         private boolean is_on = true;
         private AudioManager audio_manager_ =
                 (AudioManager) parent_activity_.getApplicationContext()
@@ -130,6 +236,7 @@ public class ContinuousTargetSpeechRecognizer extends TargetSpeechRecognizer {
                 is_on = true;
             }
         }
+
         public void soundOff() {
             if (is_on) {
                 audio_manager_.setStreamSolo(AudioManager.STREAM_VOICE_CALL, true);

@@ -37,11 +37,14 @@ public class ArduinoConnector {
     }
 
     public void send(String command) {
-        bluetooth_.Write(command.getBytes());
+        String packet = PacketProcessor.createPacket(command);
+        bluetooth_.Write(packet.getBytes());
     }
 
     public void destroy() {
-        bluetooth_.cancel();
+        if (bluetooth_ != null) {
+            bluetooth_.cancel();
+        }
     }
 
     protected  BluetoothSerial.Listener bluetooth_listener_ = new BluetoothSerial.Listener() {
@@ -50,8 +53,9 @@ public class ArduinoConnector {
         @Override
         public void onConnect(BluetoothDevice device) {
             Toast.makeText(application_context_, "Connected", Toast.LENGTH_SHORT).show();
-            String a = "hi";
-            bluetooth_.Write(a.getBytes());
+            String initial_msg = "hi";
+            String packet = PacketProcessor.createPacket(initial_msg);
+            bluetooth_.Write(packet.getBytes());
         }
 
         @Override
@@ -80,9 +84,9 @@ public class ArduinoConnector {
         private int body_length_ = 0;
         private String body_;
 
-        private final String kPacketDelimiter = "#";
-        private final int kMinPacketLen = 5;
-        private final int kMaxPacketLen = 50;
+        private static final String kPacketDelimiter = "#";
+        private static final int kMinPacketLen = 5;
+        private static final int kMaxPacketLen = 50;
 
         // packet process result;
         public static final int kPacketPending = 1;
@@ -149,6 +153,10 @@ public class ArduinoConnector {
             }
 
             return kPacketOk;
+        }
+
+        public static String createPacket(String command) {
+            return command + kPacketDelimiter;
         }
     }
 }

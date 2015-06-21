@@ -75,10 +75,12 @@ public class BluetoothSerial {
             connect_thread_ = null;
         }
 
-        try {
-            socket_.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (socket_ != null) {
+            try {
+                socket_.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         if (read_thread_ != null) {
@@ -126,7 +128,9 @@ public class BluetoothSerial {
                 // Unable to connect; close the socket and get out
                 try {
                     socket_.close();
-                } catch (IOException closeException) { }
+                } catch (IOException closeException) {
+                    closeException.printStackTrace();
+                }
                 return;
             }
 

@@ -72,6 +72,7 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        super.onDestroy();
         arduinoConnector_.destroy();
     }
 
@@ -124,6 +125,7 @@ public class MainActivity extends Activity {
                 arduinoConnector_.send(speech);
             } catch (Exception e) {
                 e.printStackTrace();
+                throw e;
             }
         }
 

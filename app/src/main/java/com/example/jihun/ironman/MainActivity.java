@@ -11,6 +11,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -60,6 +61,7 @@ public class MainActivity extends Activity {
         prograss_bar_ = (ProgressBar)findViewById(R.id.progressBarSpeech);
         prograss_bar_.setMax(normalizeSpeechValue(kSpeechMaxValue));
         txt_speach_result_ = (TextView) findViewById(R.id.textViewSpeachResult);
+        txt_speach_result_.setText(getResources().getString(R.string.txtview_not_connected));
 
         // Wraps 'speech_listener_' in 'Filter classes', so that it only gets filtered speeches.
         CommandSpeechFilter cmd_filter = new CommandSpeechFilter(speech_listener_);
@@ -71,7 +73,7 @@ public class MainActivity extends Activity {
         speech_recognizer_ = new ContinuousSpeechRecognizer(
                 this, speech_recognizer_listener_, signal_filter);
 
-        arduinoConnector_ = new ArduinoConnector(getApplicationContext());
+        arduinoConnector_ = new ArduinoConnector(getApplicationContext(), arduino_listener_);
     }
 
     @Override
@@ -152,6 +154,24 @@ public class MainActivity extends Activity {
         public void onSoundChanged(float rmsdB) {
             final int increment = normalizeSpeechValue(rmsdB) - prograss_bar_.getProgress();
             prograss_bar_.incrementProgressBy(increment);
+        }
+    };
+
+    private ArduinoConnector.Listener arduino_listener_ = new ArduinoConnector.Listener() {
+        @Override
+        public void onConnect(BluetoothDevice device) {
+            txt_speach_result_.setText(getResources().getString(R.string.txtview_listening));
+        }
+
+        @Override
+        public void onRead(String data) {
+            Toast.makeText(getApplicationContext(), data, Toast.LENGTH_SHORT).show();
+        }
+
+        @Override
+        public void onDisconnect(BluetoothDevice device) {
+            txt_speach_result_.setText(
+                    getResources().getString(R.string.txtview_not_connected));
         }
     };
 }

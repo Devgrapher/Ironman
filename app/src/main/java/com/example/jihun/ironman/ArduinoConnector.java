@@ -12,11 +12,22 @@ import java.util.StringTokenizer;
  * Created by Jihun on 2015-06-14.
  */
 public class ArduinoConnector {
-    protected Context application_context_;
-    protected BluetoothSerial bluetooth_;
+    private Context application_context_;
+    private BluetoothSerial bluetooth_;
+    private Listener listener_;
 
-    public ArduinoConnector(Context application_context) {
+    /**
+     * Notifies the arduino connection status
+     */
+    public interface Listener {
+        void onConnect(BluetoothDevice device);
+        void onRead(String data);
+        void onDisconnect(BluetoothDevice device);
+    }
+
+    public ArduinoConnector(Context application_context, Listener listener) {
         application_context_ = application_context;
+        listener_ = listener;
     }
 
     public void connect(BluetoothDevice device) {
@@ -52,10 +63,11 @@ public class ArduinoConnector {
 
         @Override
         public void onConnect(BluetoothDevice device) {
-            Toast.makeText(application_context_, "Connected", Toast.LENGTH_SHORT).show();
             String initial_msg = "hi";
             String packet = PacketProcessor.createPacket(initial_msg);
             bluetooth_.Write(packet.getBytes());
+            listener_.onConnect(device);
+            Toast.makeText(application_context_, "Connected", Toast.LENGTH_SHORT).show();
         }
 
         @Override
@@ -65,13 +77,14 @@ public class ArduinoConnector {
                 return;
             }
 
-            Toast.makeText(application_context_, packet, Toast.LENGTH_SHORT).show();
+            listener_.onRead(packet);
         }
 
         @Override
         public void onDisconnect(BluetoothDevice device) {
             Toast.makeText(application_context_, "Disconnected",
                     Toast.LENGTH_SHORT).show();
+            listener_.onDisconnect(device);
         }
     };
 

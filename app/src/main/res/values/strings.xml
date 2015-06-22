@@ -4,7 +4,8 @@
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
     <string name="ButtonConnect">Connect</string>
-    <string name="txtview_command_wait">Listening...</string>
+    <string name="txtview_listening">Listening...</string>
+    <string name="txtview_not_connected">Not Connected</string>
     <string name="title_activity_bluetooth_pair">BluetoothPair</string>
     <string name="bluetooth_acticity_title">Device List</string>
     <string name="button_bluetooth_device_refresh">Refresh Devices</string>

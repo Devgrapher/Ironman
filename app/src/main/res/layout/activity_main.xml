@@ -21,7 +21,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/txtview_command_wait"
+        android:text="@string/txtview_not_connected"
         android:id="@+id/textViewSpeachResult"
         android:minWidth="200dp"
         android:textSize="@dimen/font_size"

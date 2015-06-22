@@ -32,6 +32,7 @@
         android:layout_height="wrap_content"
         android:text="@string/button_bluetooth_device_refresh"
         android:id="@+id/buttonBluetoothDeviceRefresh"
+        android:background="@drawable/button"
         android:layout_alignParentBottom="true"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"

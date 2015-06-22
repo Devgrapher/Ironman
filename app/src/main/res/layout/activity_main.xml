@@ -9,41 +9,47 @@
     android:id="@+id/mainLayout">
 
     <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/ButtonConnect"
         android:id="@+id/buttonConnect"
+
+        android:text="@string/ButtonConnect"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp"
+
+        android:layout_width="wrap_content"
+        android:layout_height="28dp"
+        android:background="@drawable/button"
+        android:shadowColor="#A8A8A8"
+        android:shadowDx="0"
+        android:shadowDy="0"
+        android:shadowRadius="5"
+        android:minWidth="200dp"
         android:onClick="onPair"
-        android:layout_centerVertical="true"
-        android:layout_centerHorizontal="true"
-        android:minWidth="200dp" />
+        android:layout_alignParentBottom="true"
+        android:layout_alignStart="@+id/textViewSpeachResult" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/txtview_not_connected"
+        android:textColor="#5D8091"
         android:id="@+id/textViewSpeachResult"
         android:minWidth="200dp"
         android:textSize="@dimen/font_size"
         android:gravity="center"
         android:layout_below="@+id/progressBarSpeech"
-        android:layout_alignLeft="@+id/progressBarSpeech"
-        android:layout_alignStart="@+id/progressBarSpeech"
-        android:layout_marginTop="44dp" />
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="35dp" />
 
     <ProgressBar
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/progressBarSpeech"
-        android:layout_below="@+id/buttonConnect"
-        android:layout_alignLeft="@+id/buttonConnect"
-        android:layout_alignStart="@+id/buttonConnect"
-        android:layout_marginTop="33dp"
-        android:layout_alignRight="@+id/buttonConnect"
-        android:layout_alignEnd="@+id/buttonConnect"
         android:indeterminate="false"
-        android:progressDrawable="@drawable/customprogressbar" />
+        android:progressDrawable="@drawable/customprogressbar"
+        android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true"
+        android:minWidth="200dp" />
 
 </RelativeLayout>
 

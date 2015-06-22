@@ -63,7 +63,8 @@ public class MainActivity extends Activity {
         txt_speach_result_ = (TextView) findViewById(R.id.textViewSpeachResult);
         txt_speach_result_.setText(getResources().getString(R.string.txtview_not_connected));
 
-        // Wraps 'speech_listener_' in 'Filter classes', so that it only gets filtered speeches.
+        /* Wraps 'speech_listener_' in 'Filter classes', so that it only gets filtered speeches. */
+
         CommandSpeechFilter cmd_filter = new CommandSpeechFilter(speech_listener_);
         cmd_filter.addPattern(kCommandLightOn,
                 new ArrayList<>(Arrays.asList(kCommandLightOnVariant)));

@@ -3,43 +3,40 @@ package com.example.jihun.ironman;
 import junit.framework.TestCase;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
-/**
- * Created by Jihun on 2015-06-14.
- */
 public class PacketProcessorTest extends TestCase{
-    protected ArduinoConnector.PacketProcessor packetProcessor
+    private ArduinoConnector.PacketProcessor packetProcessor
             = new ArduinoConnector.PacketProcessor();
+    private static byte[] kEmtpyBytes = {};
 
     public void testParsePacket() {
-        String test1 = new String("#05#hello");
+        String test1 = "hello#world#";
         String result = packetProcessor.pushPacketFragment(
                 test1.getBytes(), test1.getBytes().length);
-        assertEquals(result, "hello");
+        assertEquals("hello", result);
+        assertEquals("world", packetProcessor.pushPacketFragment(kEmtpyBytes, 0));
+        assertEquals("", packetProcessor.pushPacketFragment(kEmtpyBytes, 0));
     }
 
-    public void testInvalidCase() {
-        ArrayList<String> cases = new ArrayList<String>();
-        cases.add(new String("#dd#hello"));
-        cases.add(new String("2345#help"));
-        cases.add(new String("no format"));
-        cases.add(new String(""));
+    public void testFragmentPacket() {
+        String[][] cases = {
+                {"hello", ""}, // input, expected result
+                {"#", "hello"},
+                {"", ""},
+                {"a series#of#packets#", "a series"},
+                {"", "of"},
+                {"", "packets"},
+                {"", ""}
+        };
 
-        for(String data : cases){
+        for(int i = 0; i < cases.length; ++i) {
+            String test_case = cases[i][0];
+            String expected = cases[i][1];
             String result = packetProcessor.pushPacketFragment(
-                    data.getBytes(), data.getBytes().length);
-            assertNull(result);
-        }
-    }
-
-    public void testPendingCase() {
-        ArrayList<String> cases = new ArrayList<String>();
-        cases.add(new String("#10#format"));
-        cases.add(new String("#10#"));
-
-        for(String data : cases){
-            int result = packetProcessor.parsePacket(data.getBytes());
-            assertEquals(result, ArduinoConnector.PacketProcessor.kPacketPending);
+                    test_case.getBytes(), test_case.getBytes().length);
+            assertEquals(expected, result);
         }
     }
 }

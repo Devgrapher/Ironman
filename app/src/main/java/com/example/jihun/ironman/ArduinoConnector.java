@@ -6,6 +6,9 @@ import android.widget.Toast;
 
 import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.Arrays;
 import java.util.StringTokenizer;
 
 /**
@@ -88,86 +91,40 @@ public class ArduinoConnector {
         }
     };
 
-    // ----- Packet Format ------
-    // #[length of body:int]#[body]
-    // The whole packet is string data.
-    // '#' is the delimiter.
+    /**
+     *  Create and parse packet.
+     *  Packet is a simple string that ends with '#'
+     */
     public static class PacketProcessor {
-        private ByteArrayOutputStream fragment_buffer_ = new ByteArrayOutputStream();
-        private int body_length_ = 0;
-        private String body_;
-
+        private String packet_ = "";
         private static final String kPacketDelimiter = "#";
-        private static final int kMinPacketLen = 5;
-        private static final int kMaxPacketLen = 50;
 
-        // packet process result;
-        public static final int kPacketPending = 1;
-        public static final int kPacketInvalid = 2;
-        public static final int kPacketOk = 3;
-
+        // Push a packet fragment into the packet buffer,
+        // and return a complete packet if it's available.
         public String pushPacketFragment(byte[] fragment, int len) {
-            fragment_buffer_.write(fragment, 0, len);
-
-            int result = parsePacket(fragment_buffer_.toByteArray());
-            if (result == kPacketInvalid) {
-                fragment_buffer_.reset();
-                return null;
-            } else if (result == kPacketOk) {
-                fragment_buffer_.reset();
-                return body_;
-            }
-
-            return null;
-        }
-
-        public int parsePacket(byte[] bytes) {
-            if (bytes.length < kMinPacketLen) {
-                return kPacketPending;
-            }
-            // check format.
-            if (bytes[0] != '#' || bytes[3] != '#') {
-                return kPacketInvalid;
-            }
-
-            String packet;
             try {
-                packet = new String(bytes, "UTF-8");
+                packet_ += new String(fragment, "UTF-8");
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
-                return  kPacketInvalid;
+                return "";
             }
 
-            StringTokenizer tokenizer = new StringTokenizer(packet, kPacketDelimiter, false);
-
-            // get body length
-            if (!tokenizer.hasMoreTokens())
-                return kPacketInvalid;
-            String len = tokenizer.nextToken();
-            if (len.isEmpty())
-                return kPacketPending;
-            try {
-                body_length_ = Integer.parseInt(len);
-            } catch (NumberFormatException e) {
-                e.printStackTrace();
-                return kPacketInvalid;
-            }
-            if (body_length_ > kMaxPacketLen)
-                return kPacketInvalid;
-
-            // get body.
-            if (!tokenizer.hasMoreTokens())
-                return kPacketInvalid;
-            body_ = tokenizer.nextToken();
-            if (body_.length() < body_length_)
-                return kPacketPending;
-            else if (body_.length() > body_length_) {
-                body_ = body_.substring(0, body_length_);
+            int idx = packet_.indexOf(kPacketDelimiter);
+            if (idx == -1) {
+                // pending...
+                return "";
             }
 
-            return kPacketOk;
+            String parsed = packet_.substring(0, idx);
+            if (packet_.length() > idx +1) {
+                packet_ = packet_.substring(idx + 1);
+            } else {
+                packet_ = "";
+            }
+            return parsed;
         }
 
+        // create a new packet for sending.
         public static String createPacket(String command) {
             return command + kPacketDelimiter;
         }

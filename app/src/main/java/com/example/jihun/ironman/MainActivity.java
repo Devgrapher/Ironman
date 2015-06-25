@@ -171,6 +171,9 @@ public class MainActivity extends Activity {
 
         @Override
         public void onRead(String data) {
+            if (data.isEmpty()) {
+                return;
+            }
             Toast.makeText(getApplicationContext(), data, Toast.LENGTH_SHORT).show();
         }
 

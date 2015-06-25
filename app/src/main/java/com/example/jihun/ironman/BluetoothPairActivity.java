@@ -129,7 +129,7 @@ public class BluetoothPairActivity extends Activity {
         }
 
         ClearDeviceList();
-        UpdateBondedDevices();
+        //UpdateBondedDevices();
         DiscorverDevices();
     }
 

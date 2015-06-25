@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -21,7 +22,11 @@ import android.widget.Toast;
 import java.util.HashMap;
 import java.util.Set;
 
-
+/**
+ * Activity that pairs with bluetooth devices.
+ *
+ * Lists out the bluetooth devices and connects them.
+ */
 public class BluetoothPairActivity extends Activity {
     private static final String TAG = "ironman.bluetooth";
     private ListView listview_devices_;
@@ -35,6 +40,14 @@ public class BluetoothPairActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bluetooth_pair);
+
+        // Set gradient background color.
+        View layout = findViewById(R.id.pairActivity);
+        GradientDrawable gd = new GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[] {0xFFF0FAFF,0xFFA3E0FF});
+        gd.setCornerRadius(0f);
+        layout.setBackground(gd);
 
         listview_devices_ = (ListView) findViewById(R.id.listViewBluetoothDevices);
         device_refresh_ = (Button) findViewById(R.id.buttonBluetoothDeviceRefresh);
@@ -66,7 +79,7 @@ public class BluetoothPairActivity extends Activity {
         });
 
         listview_devices_.setAdapter(listview_adapter_);
-        device_name_map_ = new HashMap();
+        device_name_map_ = new HashMap<>();
     }
 
     @Override

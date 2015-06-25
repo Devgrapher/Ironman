@@ -40,10 +40,6 @@ public class MainActivity extends Activity {
             { "lights off", "light of", "like talked"};
 
 
-    private int normalizeSpeechValue(float value) {
-        return (int)((value + Math.abs(kSpeechMinValue)) * kSpeechMagnifyingValue);
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "start main");
@@ -148,6 +144,15 @@ public class MainActivity extends Activity {
             }
         }
     };
+
+    /**
+     * Change the value, ranged from -2.12 to 10, into new value ranged from 0 to 1212.
+     * @param value speech level from SpeechRecognizer.
+     * @return normalized value.
+     */
+    private int normalizeSpeechValue(float value) {
+        return (int)((value + Math.abs(kSpeechMinValue)) * kSpeechMagnifyingValue);
+    }
 
     private ContinuousSpeechRecognizer.Listener speech_recognizer_listener_ =
         new ContinuousSpeechRecognizer.Listener() {

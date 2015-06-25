@@ -12,7 +12,9 @@ import java.util.Arrays;
 import java.util.StringTokenizer;
 
 /**
- * Created by Jihun on 2015-06-14.
+ * Communicate with Arduino Device using bluetooth.
+ *
+ * Responsible for managing packets and implementing the protocol.
  */
 public class ArduinoConnector {
     private Context application_context_;

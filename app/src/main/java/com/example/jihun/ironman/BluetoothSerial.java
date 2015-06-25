@@ -14,7 +14,10 @@ import java.util.Arrays;
 import java.util.UUID;
 
 /**
- * Created by Jihun on 2015-06-13.
+ * Wrapper class for BluetoothAdapter.
+ *
+ * Manage connect and read thread.
+ * Each instance of this has one socket and is responsible for it.
  */
 public class BluetoothSerial {
     static final int kMsgConnectBluetooth = 1;
@@ -40,6 +43,12 @@ public class BluetoothSerial {
         bluetooth_ = BluetoothAdapter.getDefaultAdapter();
     }
 
+    /**
+     * Ask connect request. Asynchronous.
+     * Will notify the connecting result via Listener.
+     * @param device device to connect.
+     * @param listener listener that will be notified events of the device.
+     */
     public void askConnect(BluetoothDevice device, Listener listener) {
         if (connect_thread_ != null) {
             connect_thread_.cancel();
@@ -58,6 +67,10 @@ public class BluetoothSerial {
         return read_thread_.isAlive();
     }
 
+        /**
+         *  Write data. Synchronous
+         * @param bytes data to send.
+         */
     public void Write(byte[] bytes) {
         if (output_stream_ == null) {
             return;

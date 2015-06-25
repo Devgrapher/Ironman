@@ -1,7 +1,7 @@
 # Ironman
 Android voice recognition app.
 
-# Arduino
+## Arduino
 This project consist of Android app and arduino sketch.
 
 Location of Arduino sketch : /Arduino/ironoman.ino

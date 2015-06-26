@@ -175,4 +175,13 @@ public class BluetoothPairActivity extends Activity {
             Log.e(TAG, "startDiscovery failed");
         }
     }
+
+    @Override
+    public String toString() {
+        String str = "Bluetooth pair Activit\n";
+        for (BluetoothDevice device : device_name_map_.values()) {
+            str += device.toString() + "\n";
+        }
+        return str;
+    }
 }

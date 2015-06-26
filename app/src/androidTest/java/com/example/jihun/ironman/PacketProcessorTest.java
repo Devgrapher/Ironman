@@ -2,10 +2,6 @@ package com.example.jihun.ironman;
 
 import junit.framework.TestCase;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-
 public class PacketProcessorTest extends TestCase{
     private ArduinoConnector.PacketProcessor packetProcessor
             = new ArduinoConnector.PacketProcessor();

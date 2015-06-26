@@ -2,14 +2,9 @@ package com.example.jihun.ironman;
 
 import android.bluetooth.BluetoothDevice;
 import android.content.Context;
-import android.widget.Toast;
 
-import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.util.Arrays;
-import java.util.StringTokenizer;
+import java.util.HashMap;
 
 /**
  * Communicate with Arduino Device using bluetooth.
@@ -21,12 +16,16 @@ public class ArduinoConnector {
     private BluetoothSerial bluetooth_;
     private Listener listener_;
 
+    public enum Reactions {
+        ActivityDetected,
+    }
+
     /**
      * Notifies the arduino connection status
      */
     public interface Listener {
         void onConnect(BluetoothDevice device);
-        void onRead(String data);
+        void onReaction(Reactions reaction, String data);
         void onDisconnect(BluetoothDevice device);
     }
 
@@ -72,23 +71,21 @@ public class ArduinoConnector {
             String packet = PacketProcessor.createPacket(initial_msg);
             bluetooth_.Write(packet.getBytes());
             listener_.onConnect(device);
-            Toast.makeText(application_context_, "Connected", Toast.LENGTH_SHORT).show();
         }
 
         @Override
         public void onRead(BluetoothDevice device, byte[] data, int len) {
             String packet = packetProcessor_.pushPacketFragment(data, len);
-            if (packet == null) {
+            if (packet.isEmpty()) {
                 return;
             }
 
-            listener_.onRead(packet);
+            PacketProcessor.ParseResult result = packetProcessor_.parsePacket(packet);
+            listener_.onReaction(result.reaction, result.param);
         }
 
         @Override
         public void onDisconnect(BluetoothDevice device) {
-            Toast.makeText(application_context_, "Disconnected",
-                    Toast.LENGTH_SHORT).show();
             listener_.onDisconnect(device);
         }
     };
@@ -100,6 +97,22 @@ public class ArduinoConnector {
     public static class PacketProcessor {
         private String packet_ = "";
         private static final String kPacketDelimiter = "#";
+
+        // The reasult after parsing packet body.
+        public class ParseResult {
+            public final Reactions reaction;
+            public final String param;
+
+            public ParseResult() {
+                reaction = null;
+                param = null;
+            }
+
+            public ParseResult(Reactions reaction, String param) {
+                this.reaction = reaction;
+                this.param = param;
+            }
+        }
 
         // Push a packet fragment into the packet buffer,
         // and return a complete packet if it's available.
@@ -126,9 +139,19 @@ public class ArduinoConnector {
             return parsed;
         }
 
-        // create a new packet for sending.
+        // Create a new packet for sending.
         public static String createPacket(String command) {
             return command + kPacketDelimiter;
         }
+
+        // Read packet body data.
+        public ParseResult parsePacket(String packet) {
+            ParseResult result = null;
+            if (packet.equals("activity detected")) {
+                result = new ParseResult(Reactions.ActivityDetected, "");
+            }
+            return result;
+        }
+
     }
 }

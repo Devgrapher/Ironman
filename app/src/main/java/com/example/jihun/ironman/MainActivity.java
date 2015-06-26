@@ -129,6 +129,11 @@ public class MainActivity extends Activity {
         startActivityForResult(intent, 0);
     }
 
+    public void restartSpeechRecognizer() {
+        speech_recognizer_.stop();
+        speech_recognizer_.start();
+    }
+
     // Handles the speeches delivered by ContinuousSpeechRecognizer.
     private SpeechListener speech_listener_ = new SpeechListener() {
         @Override
@@ -167,20 +172,21 @@ public class MainActivity extends Activity {
         @Override
         public void onConnect(BluetoothDevice device) {
             txt_speach_result_.setText(getResources().getString(R.string.txtview_listening));
+            Toast.makeText(getApplicationContext(), "Connected", Toast.LENGTH_SHORT).show();
         }
 
         @Override
-        public void onRead(String data) {
-            if (data.isEmpty()) {
-                return;
+        public void onReaction(ArduinoConnector.Reactions reaction, String data) {
+            if (reaction == ArduinoConnector.Reactions.ActivityDetected) {
+                restartSpeechRecognizer();
             }
-            Toast.makeText(getApplicationContext(), data, Toast.LENGTH_SHORT).show();
         }
+
 
         @Override
         public void onDisconnect(BluetoothDevice device) {
-            txt_speach_result_.setText(
-                    getResources().getString(R.string.txtview_not_connected));
+            txt_speach_result_.setText(getResources().getString(R.string.txtview_not_connected));
+            Toast.makeText(getApplicationContext(), "Disconnected", Toast.LENGTH_SHORT).show();
         }
     };
 }

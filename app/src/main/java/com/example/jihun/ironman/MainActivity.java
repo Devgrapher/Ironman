@@ -18,22 +18,18 @@ import com.example.jihun.ironman.arduino.ArduinoConnector;
 import com.example.jihun.ironman.arduino.BluetoothPairActivity;
 import com.example.jihun.ironman.arduino.PacketParser;
 import com.example.jihun.ironman.speech.CommandSpeechFilter;
+import com.example.jihun.ironman.speech.EnhancedSpeechRecognizer;
 import com.example.jihun.ironman.speech.SignalSpeechFilter;
 import com.example.jihun.ironman.speech.SpeechListener;
-import com.example.jihun.ironman.speech.SpeechRecognizerWrapper;
 
 public class MainActivity extends Activity {
     private static final String TAG = "Ironman";
     private TextView txt_app_status_;
     private ProgressBar progress_bar_;
-    private SpeechRecognizerWrapper speech_recognizer_;
+    private EnhancedSpeechRecognizer speech_recognizer_;
     private ArduinoConnector arduinoConnector_;
     private final AppStateManager app_status_manager_ = new AppStateManager();
 
-    // Max speech value from SpeechRecognizer
-    private final float kSpeechMinValue = -2.12f;
-    // Min speech value from SpeechRecognizer
-    private final int kSpeechMaxValue = 10;
     // The value for magnifying to display on progress bar.
     private final int kSpeechMagnifyingValue = 100;
 
@@ -46,7 +42,7 @@ public class MainActivity extends Activity {
         setBackgroundColor();
 
         progress_bar_ = (ProgressBar)findViewById(R.id.progressBarSpeech);
-        progress_bar_.setMax(normalizeSpeechValue(kSpeechMaxValue));
+        progress_bar_.setMax(normalizeSpeechValue(EnhancedSpeechRecognizer.kSpeechMaxValue));
         txt_app_status_ = (TextView) findViewById(R.id.textViewSpeachResult);
         updateStatusUIText(app_status_manager_.getStatus());
 
@@ -60,7 +56,7 @@ public class MainActivity extends Activity {
                 rs.getString(R.string.command_lightoff_variant));
         SignalSpeechFilter signal_filter = new SignalSpeechFilter(cmd_filter,
                 rs.getString(R.string.speech_singal));
-        speech_recognizer_ = new SpeechRecognizerWrapper(
+        speech_recognizer_ = new EnhancedSpeechRecognizer(
                 this, speech_recognizer_listener_, signal_filter);
 
         arduinoConnector_ = new ArduinoConnector(arduino_listener_);
@@ -132,7 +128,7 @@ public class MainActivity extends Activity {
         startActivityForResult(intent, 0);
     }
 
-    // Handles the speeches delivered by SpeechRecognizerWrapper.
+    // Handles the speeches delivered by EnhancedSpeechRecognizer.
     private SpeechListener speech_listener_ = new SpeechListener() {
         @Override
         public void onSpeechRecognized(String speech) {
@@ -154,14 +150,15 @@ public class MainActivity extends Activity {
      * @return normalized value.
      */
     private int normalizeSpeechValue(float value) {
-        return (int)((value + Math.abs(kSpeechMinValue)) * kSpeechMagnifyingValue);
+        return (int)((value + Math.abs(EnhancedSpeechRecognizer.kSpeechMinValue))
+                * kSpeechMagnifyingValue);
     }
 
     /**
      * Listener for speech recognition.
      */
-    private SpeechRecognizerWrapper.Listener speech_recognizer_listener_ =
-        new SpeechRecognizerWrapper.Listener() {
+    private EnhancedSpeechRecognizer.Listener speech_recognizer_listener_ =
+        new EnhancedSpeechRecognizer.Listener() {
             @Override
             public void onStart() {
                 app_status_manager_.updateSpeechRecognitionStatus(true);
@@ -175,10 +172,10 @@ public class MainActivity extends Activity {
             }
 
             @Override
-        public void onSoundChanged(float rmsdB) {
-            final int increment = normalizeSpeechValue(rmsdB) - progress_bar_.getProgress();
-            progress_bar_.incrementProgressBy(increment);
-        }
+            public void onSoundChanged(float rmsdB) {
+                final int increment = normalizeSpeechValue(rmsdB) - progress_bar_.getProgress();
+                progress_bar_.incrementProgressBy(increment);
+            }
     };
 
     /**

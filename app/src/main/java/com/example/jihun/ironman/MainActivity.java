@@ -3,6 +3,7 @@ package com.example.jihun.ironman;
 import android.app.Activity;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.util.Log;
@@ -13,33 +14,24 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+import com.example.jihun.ironman.arduino.ArduinoConnector;
+import com.example.jihun.ironman.arduino.BluetoothPairActivity;
+import com.example.jihun.ironman.arduino.PacketParser;
+import com.example.jihun.ironman.speech.CommandSpeechFilter;
+import com.example.jihun.ironman.speech.EnhancedSpeechRecognizer;
+import com.example.jihun.ironman.speech.SignalSpeechFilter;
+import com.example.jihun.ironman.speech.SpeechListener;
 
 public class MainActivity extends Activity {
     private static final String TAG = "Ironman";
-    private TextView txt_speach_result_;
-    private ProgressBar prograss_bar_;
-    private SpeechRecognizerWrapper speech_recognizer_;
+    private TextView txt_app_status_;
+    private ProgressBar progress_bar_;
+    private EnhancedSpeechRecognizer speech_recognizer_;
     private ArduinoConnector arduinoConnector_;
     private final AppStateManager app_status_manager_ = new AppStateManager();
 
-    // Max speech value from SpeechRecognizer
-    private final float kSpeechMinValue = -2.12f;
-    // Min speech value from SpeechRecognizer
-    private final int kSpeechMaxValue = 10;
-    // The value for magnifying to display on prograss bar.
+    // The value for magnifying to display on progress bar.
     private final int kSpeechMagnifyingValue = 100;
-    // The signal speech that the recognition starts with.
-    private final String kSignalSpeech = "Lucy";
-    // The commands ordered in speech.
-    private final String kCommandLightOn = "light on";
-    private final String[] kCommandLightOnVariant =
-            { "lights on", "lite on", "like on"};
-    private final String kCommandLightOff = "light off";
-    private final String[] kCommandLightOffVariant =
-            { "lights off", "light of", "like talked"};
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,20 +41,22 @@ public class MainActivity extends Activity {
 
         setBackgroundColor();
 
-        prograss_bar_ = (ProgressBar)findViewById(R.id.progressBarSpeech);
-        prograss_bar_.setMax(normalizeSpeechValue(kSpeechMaxValue));
-        txt_speach_result_ = (TextView) findViewById(R.id.textViewSpeachResult);
+        progress_bar_ = (ProgressBar)findViewById(R.id.progressBarSpeech);
+        progress_bar_.setMax(normalizeSpeechValue(EnhancedSpeechRecognizer.kSpeechMaxValue));
+        txt_app_status_ = (TextView) findViewById(R.id.textViewSpeachResult);
         updateStatusUIText(app_status_manager_.getStatus());
 
         /* Wraps 'speech_listener_' in 'Filter classes', so that it only gets filtered speeches. */
 
         CommandSpeechFilter cmd_filter = new CommandSpeechFilter(speech_listener_);
-        cmd_filter.addPattern(kCommandLightOn,
-                new ArrayList<>(Arrays.asList(kCommandLightOnVariant)));
-        cmd_filter.addPattern(kCommandLightOff,
-                new ArrayList<>(Arrays.asList(kCommandLightOffVariant)));
-        SignalSpeechFilter signal_filter = new SignalSpeechFilter(cmd_filter, kSignalSpeech);
-        speech_recognizer_ = new SpeechRecognizerWrapper(
+        final Resources rs = getResources();
+        cmd_filter.addPattern(rs.getString(R.string.command_lighton),
+                rs.getString(R.string.command_lighton_variant));
+        cmd_filter.addPattern(rs.getString(R.string.command_lightoff),
+                rs.getString(R.string.command_lightoff_variant));
+        SignalSpeechFilter signal_filter = new SignalSpeechFilter(cmd_filter,
+                rs.getString(R.string.speech_singal));
+        speech_recognizer_ = new EnhancedSpeechRecognizer(
                 this, speech_recognizer_listener_, signal_filter);
 
         arduinoConnector_ = new ArduinoConnector(arduino_listener_);
@@ -134,13 +128,13 @@ public class MainActivity extends Activity {
         startActivityForResult(intent, 0);
     }
 
-    // Handles the speeches delivered by SpeechRecognizerWrapper.
+    // Handles the speeches delivered by EnhancedSpeechRecognizer.
     private SpeechListener speech_listener_ = new SpeechListener() {
         @Override
         public void onSpeechRecognized(String speech) {
             if (speech.isEmpty())
                 return;
-            txt_speach_result_.setText(speech);
+            txt_app_status_.setText(speech);
             try {
                 arduinoConnector_.send(speech);
             } catch (Exception e) {
@@ -156,11 +150,15 @@ public class MainActivity extends Activity {
      * @return normalized value.
      */
     private int normalizeSpeechValue(float value) {
-        return (int)((value + Math.abs(kSpeechMinValue)) * kSpeechMagnifyingValue);
+        return (int)((value + Math.abs(EnhancedSpeechRecognizer.kSpeechMinValue))
+                * kSpeechMagnifyingValue);
     }
 
-    private SpeechRecognizerWrapper.Listener speech_recognizer_listener_ =
-        new SpeechRecognizerWrapper.Listener() {
+    /**
+     * Listener for speech recognition.
+     */
+    private EnhancedSpeechRecognizer.Listener speech_recognizer_listener_ =
+        new EnhancedSpeechRecognizer.Listener() {
             @Override
             public void onStart() {
                 app_status_manager_.updateSpeechRecognitionStatus(true);
@@ -174,12 +172,15 @@ public class MainActivity extends Activity {
             }
 
             @Override
-        public void onSoundChanged(float rmsdB) {
-            final int increment = normalizeSpeechValue(rmsdB) - prograss_bar_.getProgress();
-            prograss_bar_.incrementProgressBy(increment);
-        }
+            public void onSoundChanged(float rmsdB) {
+                final int increment = normalizeSpeechValue(rmsdB) - progress_bar_.getProgress();
+                progress_bar_.incrementProgressBy(increment);
+            }
     };
 
+    /**
+     * Listener for Arduino.
+     */
     private ArduinoConnector.Listener arduino_listener_ = new ArduinoConnector.Listener() {
         @Override
         public void onConnect(BluetoothDevice device) {
@@ -192,8 +193,8 @@ public class MainActivity extends Activity {
         }
 
         @Override
-        public void onReaction(ArduinoConnector.Reactions reaction, String data) {
-            if (reaction == ArduinoConnector.Reactions.ActivityDetected) {
+        public void onReaction(PacketParser.Type type, String data) {
+            if (type == PacketParser.Type.ActivityDetected) {
                 // There is a limitation that Android doesn't offer continuous speech recognition.
                 // So only when is activity detected, speech recognition starts.
                 speech_recognizer_.start();
@@ -212,14 +213,14 @@ public class MainActivity extends Activity {
     public void updateStatusUIText(AppState state) {
         switch (state) {
             case Disconnected:
-                txt_speach_result_.setText(
+                txt_app_status_.setText(
                         getResources().getString(R.string.txtview_disconnected));
                 break;
             case Standby:
-                txt_speach_result_.setText(getResources().getString(R.string.txtview_standby));
+                txt_app_status_.setText(getResources().getString(R.string.txtview_standby));
                 break;
             case Listening:
-                txt_speach_result_.setText(
+                txt_app_status_.setText(
                         getResources().getString(R.string.txtview_listening));
                 break;
         }

@@ -1,4 +1,4 @@
-package com.example.jihun.ironman;
+package com.example.jihun.ironman.speech;
 
 import android.app.Activity;
 import android.content.Context;
@@ -18,16 +18,25 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 
 /**
- * Runs SpeechRecognizer continuously if there are constant request.
+ * Responsible for improving recognition service and hiding complex logic.
  *
- * By default, SpeechRecognizer ends in 5 seconds after starting.
- * So this class runs the recognizer over and over if start() method is being called.
+ * By default, SpeechRecognizer ends in 5 seconds after its starting.
+ * So this class runs the recognizer over and over when it meets the conditions below.
+ * - When speech recognized,
+ * - When duplicated start() had called while it was listening to speech.
+ *
+ * It mutes the sounds at the begin and end of speech recognition, which is automatically generated
+ * by the library and is unable to mute.
  */
-public class SpeechRecognizerWrapper implements RecognitionListener {
+public class EnhancedSpeechRecognizer implements RecognitionListener {
     private static final int kMsgRecognizerStart = 1;
     private static final int kMsgRecognizerStop = 2;
-    private static final int kMsgSoundOn = 3;
     private static final String TAG = "Ironman.SR";
+
+    // Max speech value from SpeechRecognizer
+    public static final float kSpeechMinValue = -2.12f;
+    // Min speech value from SpeechRecognizer
+    public static final int kSpeechMaxValue = 10;
 
     private SpeechRecognizer speech_recog_;
     // Intent fo speech recognizer
@@ -37,6 +46,7 @@ public class SpeechRecognizerWrapper implements RecognitionListener {
     private Listener listener_;
     // Whether start() is called during the speech listening..
     private boolean duplicated_listening_ = false;
+    private boolean speech_recognized_ = false;
     private final SoundController sound_controllor_;
     private final Messenger server_messenger_ = new Messenger(new IncomingHandler(this));
 
@@ -49,8 +59,8 @@ public class SpeechRecognizerWrapper implements RecognitionListener {
         void onSoundChanged(float rmsdB);
     }
 
-    public SpeechRecognizerWrapper(Activity parent_activity, Listener listener,
-                                   SpeechListener speech_listener) {
+    public EnhancedSpeechRecognizer(Activity parent_activity, Listener listener,
+                                    SpeechListener speech_listener) {
         parent_activity_ = parent_activity;
         listener_ = listener;
         speech_listener_ = speech_listener;
@@ -81,7 +91,7 @@ public class SpeechRecognizerWrapper implements RecognitionListener {
         speech_recog_.startListening(intent_);
 
         listener_.onStart();
-        listener_.onSoundChanged(0);
+        listener_.onSoundChanged(kSpeechMinValue);
     }
 
     // Stop speech recognizing
@@ -95,11 +105,17 @@ public class SpeechRecognizerWrapper implements RecognitionListener {
 
         listener_.onStop();
         // reset sound level.
-        listener_.onSoundChanged(0);
+        listener_.onSoundChanged(kSpeechMinValue);
     }
 
     // Start speech recognizing asynchronously.
     public void asyncStart() {
+        if (speech_recog_ != null) {
+            speech_recog_.cancel();
+            speech_recog_.destroy();
+            speech_recog_ = null;
+        }
+
         Message message = Message.obtain(null, kMsgRecognizerStart);
         try {
             server_messenger_.send(message);
@@ -130,6 +146,7 @@ public class SpeechRecognizerWrapper implements RecognitionListener {
     @Override
     public void onBeginningOfSpeech() {
         Log.d(TAG, "onBeginningOfSpeech");
+        speech_recognized_ = true;
     }
 
     @Override
@@ -152,12 +169,15 @@ public class SpeechRecognizerWrapper implements RecognitionListener {
     @Override
     public void onError(int error) {
         Log.d(TAG, "onError for speech: " + error);
-        stop();
 
-        // If there were duplicated start requests, start listening again.
-        if (duplicated_listening_) {
+        // If there were duplicated start requests or speech recognized,
+        // start listening again.
+        if (duplicated_listening_ || speech_recognized_) {
             duplicated_listening_ = false;
+            speech_recognized_ = false;
             asyncStart();
+        } else {
+            stop();
         }
     }
 
@@ -173,7 +193,13 @@ public class SpeechRecognizerWrapper implements RecognitionListener {
             Log.d(TAG, "match: " + speech);
             speech_listener_.onSpeechRecognized(speech);
         }
-        stop();
+
+        // When speech detected, start the recognition again since in this case
+        // there will be a high chance that people try speech recognition more times.
+        asyncStart();
+
+        duplicated_listening_ = false;
+        speech_recognized_ = false;
     }
 
     @Override
@@ -183,15 +209,15 @@ public class SpeechRecognizerWrapper implements RecognitionListener {
     public void onEvent(int eventType, Bundle params) {}
 
     private static class IncomingHandler extends Handler {
-        private WeakReference<SpeechRecognizerWrapper> target_;
+        private WeakReference<EnhancedSpeechRecognizer> target_;
 
-        IncomingHandler(SpeechRecognizerWrapper target) {
+        IncomingHandler(EnhancedSpeechRecognizer target) {
             target_ = new WeakReference<>(target);
         }
 
         @Override
         public void handleMessage(Message msg) {
-            final SpeechRecognizerWrapper target = target_.get();
+            final EnhancedSpeechRecognizer target = target_.get();
 
             switch (msg.what) {
                 case kMsgRecognizerStart:

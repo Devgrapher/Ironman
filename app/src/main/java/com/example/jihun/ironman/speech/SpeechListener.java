@@ -1,4 +1,4 @@
-package com.example.jihun.ironman;
+package com.example.jihun.ironman.speech;
 
 /**
  * Interface for listening speeches.

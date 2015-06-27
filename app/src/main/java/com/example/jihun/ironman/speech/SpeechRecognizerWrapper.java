@@ -1,4 +1,4 @@
-package com.example.jihun.ironman;
+package com.example.jihun.ironman.speech;
 
 import android.app.Activity;
 import android.content.Context;
@@ -21,7 +21,10 @@ import java.util.ArrayList;
  * Runs SpeechRecognizer continuously if there are constant request.
  *
  * By default, SpeechRecognizer ends in 5 seconds after starting.
- * So this class runs the recognizer over and over if start() method is being called.
+ * So this class runs the recognizer over and over while start() method is called on.
+ *
+ * Mute the sounds at the begin and end of speech recognition, which is automatically generated
+ * by the library and is unable to mute.
  */
 public class SpeechRecognizerWrapper implements RecognitionListener {
     private static final int kMsgRecognizerStart = 1;

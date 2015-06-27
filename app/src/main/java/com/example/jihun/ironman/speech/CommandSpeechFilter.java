@@ -1,4 +1,4 @@
-package com.example.jihun.ironman;
+package com.example.jihun.ironman.speech;
 
 import android.util.Log;
 
@@ -14,7 +14,7 @@ public class CommandSpeechFilter implements SpeechListener {
     private SpeechListener speech_listener_;
     private HashMap<String, String> pattern_speeches_ = new HashMap<>();
 
-    private final String kVariantDelemiter = "|";
+    private final String kVariantsDelemiter = "|";
 
     /**
      * Load patterns from setting file.
@@ -49,7 +49,7 @@ public class CommandSpeechFilter implements SpeechListener {
     }
 
     public void addPattern(String speech, String formatted_variants) {
-        StringTokenizer tokenizer = new StringTokenizer(formatted_variants, kVariantDelemiter);
+        StringTokenizer tokenizer = new StringTokenizer(formatted_variants, kVariantsDelemiter);
         ArrayList<String> variants = new ArrayList<>();
         while (tokenizer.hasMoreTokens()) {
             variants.add(tokenizer.nextToken().trim());

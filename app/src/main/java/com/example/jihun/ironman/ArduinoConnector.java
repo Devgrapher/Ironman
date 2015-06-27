@@ -1,10 +1,8 @@
 package com.example.jihun.ironman;
 
 import android.bluetooth.BluetoothDevice;
-import android.content.Context;
 
 import java.io.UnsupportedEncodingException;
-import java.util.HashMap;
 
 /**
  * Communicate with Arduino Device using bluetooth.
@@ -12,7 +10,6 @@ import java.util.HashMap;
  * Responsible for managing packets and implementing the protocol.
  */
 public class ArduinoConnector {
-    private Context application_context_;
     private BluetoothSerial bluetooth_;
     private Listener listener_;
 
@@ -29,8 +26,7 @@ public class ArduinoConnector {
         void onDisconnect(BluetoothDevice device);
     }
 
-    public ArduinoConnector(Context application_context, Listener listener) {
-        application_context_ = application_context;
+    public ArduinoConnector(Listener listener) {
         listener_ = listener;
     }
 
@@ -81,7 +77,9 @@ public class ArduinoConnector {
             }
 
             PacketProcessor.ParseResult result = packetProcessor_.parsePacket(packet);
-            listener_.onReaction(result.reaction, result.param);
+            if (result != null) {
+                listener_.onReaction(result.reaction, result.param);
+            }
         }
 
         @Override

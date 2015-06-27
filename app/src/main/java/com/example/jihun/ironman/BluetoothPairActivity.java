@@ -41,13 +41,7 @@ public class BluetoothPairActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bluetooth_pair);
 
-        // Set gradient background color.
-        View layout = findViewById(R.id.pairActivity);
-        GradientDrawable gd = new GradientDrawable(
-                GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[] {0xFFF0FAFF,0xFFA3E0FF});
-        gd.setCornerRadius(0f);
-        layout.setBackground(gd);
+        setBackgroundColor();
 
         listview_devices_ = (ListView) findViewById(R.id.listViewBluetoothDevices);
         device_refresh_ = (Button) findViewById(R.id.buttonBluetoothDeviceRefresh);
@@ -80,6 +74,16 @@ public class BluetoothPairActivity extends Activity {
 
         listview_devices_.setAdapter(listview_adapter_);
         device_name_map_ = new HashMap<>();
+    }
+
+    // Set gradient background color.
+    private void setBackgroundColor() {
+        View layout = findViewById(R.id.pairActivity);
+        GradientDrawable gd = new GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[] {0xFFF0FAFF,0xFFA3E0FF});
+        gd.setCornerRadius(0f);
+        layout.setBackground(gd);
     }
 
     @Override

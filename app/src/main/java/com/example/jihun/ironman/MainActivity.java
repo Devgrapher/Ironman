@@ -20,8 +20,9 @@ public class MainActivity extends Activity {
     private static final String TAG = "Ironman";
     private TextView txt_speach_result_;
     private ProgressBar prograss_bar_;
-    private ContinuousSpeechRecognizer speech_recognizer_;
+    private SpeechRecognizerWrapper speech_recognizer_;
     private ArduinoConnector arduinoConnector_;
+    private final AppStateManager app_status_manager_ = new AppStateManager();
 
     // Max speech value from SpeechRecognizer
     private final float kSpeechMinValue = -2.12f;
@@ -46,18 +47,12 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Set gradient background color.
-        View layout = findViewById(R.id.mainLayout);
-        GradientDrawable gd = new GradientDrawable(
-                GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[] {0xFFF0FAFF,0xFFA3E0FF});
-        gd.setCornerRadius(0f);
-        layout.setBackground(gd);
+        setBackgroundColor();
 
         prograss_bar_ = (ProgressBar)findViewById(R.id.progressBarSpeech);
         prograss_bar_.setMax(normalizeSpeechValue(kSpeechMaxValue));
         txt_speach_result_ = (TextView) findViewById(R.id.textViewSpeachResult);
-        txt_speach_result_.setText(getResources().getString(R.string.txtview_not_connected));
+        updateStatusUIText(app_status_manager_.getStatus());
 
         /* Wraps 'speech_listener_' in 'Filter classes', so that it only gets filtered speeches. */
 
@@ -67,10 +62,20 @@ public class MainActivity extends Activity {
         cmd_filter.addPattern(kCommandLightOff,
                 new ArrayList<>(Arrays.asList(kCommandLightOffVariant)));
         SignalSpeechFilter signal_filter = new SignalSpeechFilter(cmd_filter, kSignalSpeech);
-        speech_recognizer_ = new ContinuousSpeechRecognizer(
+        speech_recognizer_ = new SpeechRecognizerWrapper(
                 this, speech_recognizer_listener_, signal_filter);
 
-        arduinoConnector_ = new ArduinoConnector(getApplicationContext(), arduino_listener_);
+        arduinoConnector_ = new ArduinoConnector(arduino_listener_);
+    }
+
+    // Set gradient background color.
+    private void setBackgroundColor() {
+        View layout = findViewById(R.id.mainLayout);
+        GradientDrawable gd = new GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[] {0xFFF0FAFF,0xFFA3E0FF});
+        gd.setCornerRadius(0f);
+        layout.setBackground(gd);
     }
 
     @Override
@@ -84,7 +89,6 @@ public class MainActivity extends Activity {
     protected void onResume() {
         Log.d(TAG, "onResume");
         super.onResume();
-        speech_recognizer_.start();
     }
 
     @Override
@@ -124,17 +128,13 @@ public class MainActivity extends Activity {
         }
     }
 
+    // connection button listener.
     public void onPair(View v){
         Intent intent = new Intent(getApplicationContext(), BluetoothPairActivity.class);
         startActivityForResult(intent, 0);
     }
 
-    public void restartSpeechRecognizer() {
-        speech_recognizer_.stop();
-        speech_recognizer_.start();
-    }
-
-    // Handles the speeches delivered by ContinuousSpeechRecognizer.
+    // Handles the speeches delivered by SpeechRecognizerWrapper.
     private SpeechListener speech_listener_ = new SpeechListener() {
         @Override
         public void onSpeechRecognized(String speech) {
@@ -159,9 +159,21 @@ public class MainActivity extends Activity {
         return (int)((value + Math.abs(kSpeechMinValue)) * kSpeechMagnifyingValue);
     }
 
-    private ContinuousSpeechRecognizer.Listener speech_recognizer_listener_ =
-        new ContinuousSpeechRecognizer.Listener() {
-        @Override
+    private SpeechRecognizerWrapper.Listener speech_recognizer_listener_ =
+        new SpeechRecognizerWrapper.Listener() {
+            @Override
+            public void onStart() {
+                app_status_manager_.updateSpeechRecognitionStatus(true);
+                updateStatusUIText(app_status_manager_.getStatus());
+            }
+
+            @Override
+            public void onStop() {
+                app_status_manager_.updateSpeechRecognitionStatus(false);
+                updateStatusUIText(app_status_manager_.getStatus());
+            }
+
+            @Override
         public void onSoundChanged(float rmsdB) {
             final int increment = normalizeSpeechValue(rmsdB) - prograss_bar_.getProgress();
             prograss_bar_.incrementProgressBy(increment);
@@ -171,22 +183,93 @@ public class MainActivity extends Activity {
     private ArduinoConnector.Listener arduino_listener_ = new ArduinoConnector.Listener() {
         @Override
         public void onConnect(BluetoothDevice device) {
-            txt_speach_result_.setText(getResources().getString(R.string.txtview_listening));
+            app_status_manager_.updateConnectionStatus(true);
+            updateStatusUIText(app_status_manager_.getStatus());
             Toast.makeText(getApplicationContext(), "Connected", Toast.LENGTH_SHORT).show();
+
+            // Starting recognition right after connection made.
+            speech_recognizer_.start();
         }
 
         @Override
         public void onReaction(ArduinoConnector.Reactions reaction, String data) {
             if (reaction == ArduinoConnector.Reactions.ActivityDetected) {
-                restartSpeechRecognizer();
+                // There is a limitation that Android doesn't offer continuous speech recognition.
+                // So only when is activity detected, speech recognition starts.
+                speech_recognizer_.start();
             }
         }
 
-
         @Override
         public void onDisconnect(BluetoothDevice device) {
-            txt_speach_result_.setText(getResources().getString(R.string.txtview_not_connected));
+            app_status_manager_.updateConnectionStatus(false);
+            updateStatusUIText(app_status_manager_.getStatus());
             Toast.makeText(getApplicationContext(), "Disconnected", Toast.LENGTH_SHORT).show();
         }
     };
+
+    // Update Status Text on UI.
+    public void updateStatusUIText(AppState state) {
+        switch (state) {
+            case Disconnected:
+                txt_speach_result_.setText(
+                        getResources().getString(R.string.txtview_disconnected));
+                break;
+            case Standby:
+                txt_speach_result_.setText(getResources().getString(R.string.txtview_standby));
+                break;
+            case Listening:
+                txt_speach_result_.setText(
+                        getResources().getString(R.string.txtview_listening));
+                break;
+        }
+    }
+
+    // Represent current application status.
+    private enum AppState {
+        Disconnected, // connected to Arduino.
+        Standby,       // waiting until activity detected
+        Listening,    // listening speech recognition.
+    }
+
+    /**
+     * Manage current app status.
+     * Evaluate application status using input status.
+     */
+    private class AppStateManager {
+        private boolean connected_ = false;
+        private boolean is_listening_ = false;
+
+        /**
+         * Update Arduino connection status.
+         * @param connected true if connected to Arduino.
+         * @return Current app status.
+         */
+        public AppState updateConnectionStatus(boolean connected) {
+            connected_ = connected;
+            return getStatus();
+        }
+
+        /**
+         * Update speech recognition status.
+         * @param is_listening true if speech recognition is working.
+         * @return Current app status.
+         */
+        public AppState updateSpeechRecognitionStatus(boolean is_listening) {
+            is_listening_ = is_listening;
+            return getStatus();
+        }
+
+        /**
+         * Evaluate the current AppStatus.
+         * @return Current AppStatus.
+         */
+        private AppState getStatus() {
+            if (connected_) {
+                return is_listening_ ? AppState.Listening : AppState.Standby;
+            } else {
+                return  AppState.Disconnected;
+            }
+        }
+    }
 }

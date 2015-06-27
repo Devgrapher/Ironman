@@ -18,39 +18,44 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 
 /**
- * Runs SpeechRecognizer continuously.
+ * Runs SpeechRecognizer continuously if there are constant request.
  *
  * By default, SpeechRecognizer ends in 5 seconds after starting.
- * So this class runs the recognizer over and over.
- *
- * It waits for the target speeches that were set by 'setTargetSpeech'
- * Upon catching the targets, it notifies the client via 'Listener' interface.
+ * So this class runs the recognizer over and over if start() method is being called.
  */
-public class ContinuousSpeechRecognizer implements RecognitionListener {
+public class SpeechRecognizerWrapper implements RecognitionListener {
     private static final int kMsgRecognizerStart = 1;
     private static final int kMsgRecognizerStop = 2;
+    private static final int kMsgSoundOn = 3;
     private static final String TAG = "Ironman.SR";
 
     private SpeechRecognizer speech_recog_;
+    // Intent fo speech recognizer
     private Intent intent_;
     private Activity parent_activity_;
     private SpeechListener speech_listener_;
     private Listener listener_;
+    // Whether start() is called during the speech listening..
+    private boolean duplicated_listening_ = false;
     private final SoundController sound_controllor_;
     private final Messenger server_messenger_ = new Messenger(new IncomingHandler(this));
 
     public interface Listener {
-        // notifying sound level.
+        // Start of speech recognition.
+        void onStart();
+        // End of speech recognition.
+        void onStop();
+        // Notifying sound level.
         void onSoundChanged(float rmsdB);
     }
 
-    public ContinuousSpeechRecognizer(Activity parent_activity, Listener listener,
-                                      SpeechListener speech_listener) {
+    public SpeechRecognizerWrapper(Activity parent_activity, Listener listener,
+                                   SpeechListener speech_listener) {
         parent_activity_ = parent_activity;
         listener_ = listener;
         speech_listener_ = speech_listener;
 
-        sound_controllor_ = new SoundController();
+        sound_controllor_ = new SoundController(parent_activity.getApplicationContext());
 
         // set intent for speech recognizer
         intent_ = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
@@ -59,38 +64,62 @@ public class ContinuousSpeechRecognizer implements RecognitionListener {
         intent_.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US");
         intent_.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_WEB_SEARCH);
+        sound_controllor_.soundOff();
+    }
+
+    // Start speech recognizing
+    public void start() {
+        Log.i(TAG, "start listening");
+        if (speech_recog_ != null) {
+            Log.i(TAG, "duplicated listening");
+            duplicated_listening_ = true;
+            return;
+        }
 
         speech_recog_ = SpeechRecognizer.createSpeechRecognizer(parent_activity_);
         speech_recog_.setRecognitionListener(this);
-    }
-
-    // start speech recognizing
-    public void start() {
-        sound_controllor_.soundOff();
-
-        Log.i(TAG, "start listening");
         speech_recog_.startListening(intent_);
 
+        listener_.onStart();
         listener_.onSoundChanged(0);
     }
 
-    // stop speech recognizing
+    // Stop speech recognizing
     public void stop() {
+        Log.i(TAG, "stop listening");
         if (speech_recog_ != null) {
             speech_recog_.cancel();
+            speech_recog_.destroy();
+            speech_recog_ = null;
         }
-        Log.i(TAG, "stop listening");
 
-        sound_controllor_.soundOn();
+        listener_.onStop();
+        // reset sound level.
+        listener_.onSoundChanged(0);
     }
 
-    // should be called before app terminates
+    // Start speech recognizing asynchronously.
+    public void asyncStart() {
+        Message message = Message.obtain(null, kMsgRecognizerStart);
+        try {
+            server_messenger_.send(message);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Should be called before app terminates
     public void destroy() {
-        speech_recog_.destroy();
+        if (speech_recog_ != null) {
+            speech_recog_.cancel();
+            speech_recog_.destroy();
+            speech_recog_ = null;
+        }
+        sound_controllor_.soundOff();
     }
 
     /*
-        implements RecognitionListener interface below
+        Implements RecognitionListener interface below
     */
 
     @Override
@@ -123,13 +152,12 @@ public class ContinuousSpeechRecognizer implements RecognitionListener {
     @Override
     public void onError(int error) {
         Log.d(TAG, "onError for speech: " + error);
+        stop();
 
-        // start listening again.
-        Message message = Message.obtain(null, kMsgRecognizerStart);
-        try {
-            server_messenger_.send(message);
-        } catch (RemoteException e) {
-            e.printStackTrace();
+        // If there were duplicated start requests, start listening again.
+        if (duplicated_listening_) {
+            duplicated_listening_ = false;
+            asyncStart();
         }
     }
 
@@ -145,14 +173,7 @@ public class ContinuousSpeechRecognizer implements RecognitionListener {
             Log.d(TAG, "match: " + speech);
             speech_listener_.onSpeechRecognized(speech);
         }
-
-        // keep listening...
-        Message message = Message.obtain(null, kMsgRecognizerStart);
-        try {
-            server_messenger_.send(message);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
+        stop();
     }
 
     @Override
@@ -162,39 +183,39 @@ public class ContinuousSpeechRecognizer implements RecognitionListener {
     public void onEvent(int eventType, Bundle params) {}
 
     private static class IncomingHandler extends Handler {
-        private WeakReference<ContinuousSpeechRecognizer> target_;
+        private WeakReference<SpeechRecognizerWrapper> target_;
 
-        IncomingHandler(ContinuousSpeechRecognizer target) {
+        IncomingHandler(SpeechRecognizerWrapper target) {
             target_ = new WeakReference<>(target);
         }
 
         @Override
         public void handleMessage(Message msg) {
-            final ContinuousSpeechRecognizer target = target_.get();
+            final SpeechRecognizerWrapper target = target_.get();
 
             switch (msg.what) {
                 case kMsgRecognizerStart:
                     Log.d(TAG, "message start listening");
                     // turn off beep sound
-                    target.sound_controllor_.soundOff();
                     target.start();
                     break;
 
                 case kMsgRecognizerStop:
                     Log.d(TAG, "message stop recognizer");
                     target.stop();
-                    target.sound_controllor_.soundOn();
                     break;
             }
         }
     }
 
-    // system sound on / off controller.
+    // System sound on / off controller.
     private class SoundController {
         private boolean is_on = true;
-        private AudioManager audio_manager_ =
-                (AudioManager) parent_activity_.getApplicationContext()
-                .getSystemService(Context.AUDIO_SERVICE);
+        private AudioManager audio_manager_;
+
+        public SoundController(Context app_context) {
+            audio_manager_ = (AudioManager)app_context.getSystemService(Context.AUDIO_SERVICE);
+        }
 
         public void soundOn() {
             if (!is_on) {

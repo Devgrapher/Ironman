@@ -130,11 +130,16 @@ public class MainActivity extends Activity {
 
     // Handles the speeches delivered by EnhancedSpeechRecognizer.
     private SpeechListener speech_listener_ = new SpeechListener() {
+        private String last_speech_ = "";
         @Override
         public void onSpeechRecognized(String speech) {
-            if (speech.isEmpty())
+            if (speech.isEmpty() || last_speech_.equals(speech)) {
                 return;
-            txt_app_status_.setText(speech);
+            }
+
+            Toast.makeText(getApplicationContext(), speech, Toast.LENGTH_SHORT).show();
+            last_speech_ = speech;
+
             try {
                 arduinoConnector_.send(speech);
             } catch (Exception e) {

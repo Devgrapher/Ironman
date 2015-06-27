@@ -12,6 +12,7 @@ const String kCmdLightOff = "light off";
 const String kCmdSetPrefix = "set:";
 
 // Status string
+const String kCmdPrefix = "command:";
 const String kStatusActivityDetected = "activity detected";
 
 const char kPacketDelimiter = '#';
@@ -90,7 +91,6 @@ String pushCommandFragment(String fragment) {
   }
   
   String complete_cmd = buffer.substring(0, idx);
-  // check it there's more commands.
   if (buffer.length() > idx + 1) { 
     buffer = buffer.substring(idx + 1);
   } else {
@@ -139,12 +139,21 @@ void loop() {
     cmd_fragment.concat(c);
     delay(1);
   }
-  // Combine the fragment with the ones recieved before.
-  String cmd = pushCommandFragment(cmd_fragment);
-  if (cmd.length() > 0) {
+
+  while(1) {
+    // Combine the fragment with the ones recieved before.
+    String cmd = pushCommandFragment(cmd_fragment);
+    if (cmd.length() == 0) {
+      break;
+    }
+    
     processCmd(cmd);
     Serial.print("command in: ");
     Serial.println(cmd);
+    
+    // run more loop with empty fragment
+    // in case that there are more packets available.
+    cmd_fragment = "";
   }
   
   if (Serial.available())

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The signal speech that the recognition starts with. -->
+    <string name="speech_singal">Lucy</string>
+    <!-- The commands given in speech. -->
+    <string name="command_lighton">light on</string>
+    <string name="command_lightoff">light off</string>
+    <!--  These are variations of the command speech
+        this is for increasing recognition accuracy. -->
+    <string name="command_lighton_variant">
+        lights on|lite on|like on
+    </string>
+    <string name="command_lightoff_variant">
+        lights off|light of|like talked
+    </string>
+</resources>

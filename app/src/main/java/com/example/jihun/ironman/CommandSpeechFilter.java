@@ -4,6 +4,7 @@ import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.StringTokenizer;
 
 /**
  * Filters the speeches delivered by SpeechListener, using the designated speeches in advance.
@@ -12,6 +13,8 @@ public class CommandSpeechFilter implements SpeechListener {
     private String TAG = "Ironman.CommandSpeechFilter";
     private SpeechListener speech_listener_;
     private HashMap<String, String> pattern_speeches_ = new HashMap<>();
+
+    private final String kVariantDelemiter = "|";
 
     /**
      * Load patterns from setting file.
@@ -43,6 +46,15 @@ public class CommandSpeechFilter implements SpeechListener {
         }
         // push itself.
         pattern_speeches_.put(speech, speech);
+    }
+
+    public void addPattern(String speech, String formatted_variants) {
+        StringTokenizer tokenizer = new StringTokenizer(formatted_variants, kVariantDelemiter);
+        ArrayList<String> variants = new ArrayList<>();
+        while (tokenizer.hasMoreTokens()) {
+            variants.add(tokenizer.nextToken().trim());
+        }
+        addPattern(speech, variants);
     }
 
     @Override

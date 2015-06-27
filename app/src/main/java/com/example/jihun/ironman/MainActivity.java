@@ -3,6 +3,7 @@ package com.example.jihun.ironman;
 import android.app.Activity;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.util.Log;
@@ -12,9 +13,6 @@ import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import java.util.ArrayList;
-import java.util.Arrays;
 
 public class MainActivity extends Activity {
     private static final String TAG = "Ironman";
@@ -30,16 +28,6 @@ public class MainActivity extends Activity {
     private final int kSpeechMaxValue = 10;
     // The value for magnifying to display on prograss bar.
     private final int kSpeechMagnifyingValue = 100;
-    // The signal speech that the recognition starts with.
-    private final String kSignalSpeech = "Lucy";
-    // The commands ordered in speech.
-    private final String kCommandLightOn = "light on";
-    private final String[] kCommandLightOnVariant =
-            { "lights on", "lite on", "like on"};
-    private final String kCommandLightOff = "light off";
-    private final String[] kCommandLightOffVariant =
-            { "lights off", "light of", "like talked"};
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,11 +45,13 @@ public class MainActivity extends Activity {
         /* Wraps 'speech_listener_' in 'Filter classes', so that it only gets filtered speeches. */
 
         CommandSpeechFilter cmd_filter = new CommandSpeechFilter(speech_listener_);
-        cmd_filter.addPattern(kCommandLightOn,
-                new ArrayList<>(Arrays.asList(kCommandLightOnVariant)));
-        cmd_filter.addPattern(kCommandLightOff,
-                new ArrayList<>(Arrays.asList(kCommandLightOffVariant)));
-        SignalSpeechFilter signal_filter = new SignalSpeechFilter(cmd_filter, kSignalSpeech);
+        final Resources rs = getResources();
+        cmd_filter.addPattern(rs.getString(R.string.command_lighton),
+                rs.getString(R.string.command_lighton_variant));
+        cmd_filter.addPattern(rs.getString(R.string.command_lightoff),
+                rs.getString(R.string.command_lightoff_variant));
+        SignalSpeechFilter signal_filter = new SignalSpeechFilter(cmd_filter,
+                rs.getString(R.string.speech_singal));
         speech_recognizer_ = new SpeechRecognizerWrapper(
                 this, speech_recognizer_listener_, signal_filter);
 

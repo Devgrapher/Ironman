@@ -1,6 +1,6 @@
 #include <SoftwareSerial.h>
 
-SoftwareSerial mySerial(4,5); // RX, TX
+SoftwareSerial mySerial(11,12); // RX, TX
 
 const int kDPinActivity = 2;
 const int kDPinLight = 13;
@@ -12,7 +12,8 @@ const String kCmdLightOff = "light off";
 const String kCmdSetPrefix = "set:";
 
 // Status string
-const String kStatusActionDetected = "action detected";
+const String kCmdPrefix = "command:";
+const String kStatusActivityDetected = "activity detected";
 
 const char kPacketDelimiter = '#';
 
@@ -30,7 +31,6 @@ void setup() {
   Serial.begin(9600);
   Serial.println("Start");
   mySerial.begin(9600);
-  mySerial.println("Start");
 }
 
 bool needLightOn(int activity, int brightness) {
@@ -91,7 +91,6 @@ String pushCommandFragment(String fragment) {
   }
   
   String complete_cmd = buffer.substring(0, idx);
-  // check it there's more commands.
   if (buffer.length() > idx + 1) { 
     buffer = buffer.substring(idx + 1);
   } else {
@@ -115,7 +114,7 @@ String checkActicityAndCreatePacket(int activity) {
     return "";
   }
   
-  String packet = kStatusActionDetected;
+  String packet = kStatusActivityDetected;
   packet += kPacketDelimiter;
   return packet;
 }
@@ -133,29 +132,28 @@ void loop() {
   //Serial.print("bright: ");
   //Serial.println(brightness);
   
-  /* do not use this code block
-  if (needLightOn(activity, brightness)) {
-    Serial.print("turn on the light: ");
-    Serial.println(brightness);
-    digitalWrite(kDPinLight, LOW); // Turn on
-  } else if (needLightOff(brightness)) {
-    Serial.print("turn off the light: ");
-    Serial.println(brightness);
-    digitalWrite(kDPinLight, HIGH); // Turn off
-  }*/
-  
   // Parse command from remote controller
   String cmd_fragment = "";
   while (mySerial.available()) {
     char c = mySerial.read();
     cmd_fragment.concat(c);
+    delay(1);
   }
-  // Combine the fragment with the ones recieved before.
-  String cmd = pushCommandFragment(cmd_fragment);
-  if (cmd.length() > 0) {
+
+  while(1) {
+    // Combine the fragment with the ones recieved before.
+    String cmd = pushCommandFragment(cmd_fragment);
+    if (cmd.length() == 0) {
+      break;
+    }
+    
     processCmd(cmd);
     Serial.print("command in: ");
     Serial.println(cmd);
+    
+    // run more loop with empty fragment
+    // in case that there are more packets available.
+    cmd_fragment = "";
   }
   
   if (Serial.available())
@@ -163,8 +161,8 @@ void loop() {
 
   // send packet if there's one to send.
   if (send_packet.length() > 0) {
-    mySerial.write(send_packet.c_str());
-    Serial.println(send_packet);
+    mySerial.print(send_packet);
+    //Serial.println(send_packet);
   }
 }
 

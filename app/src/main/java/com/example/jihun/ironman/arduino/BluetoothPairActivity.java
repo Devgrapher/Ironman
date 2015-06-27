@@ -1,4 +1,4 @@
-package com.example.jihun.ironman;
+package com.example.jihun.ironman.arduino;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
@@ -18,6 +18,9 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
+
+import com.example.jihun.ironman.MainActivity;
+import com.example.jihun.ironman.R;
 
 import java.util.HashMap;
 import java.util.Set;

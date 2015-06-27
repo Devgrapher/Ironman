@@ -14,6 +14,10 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.jihun.ironman.arduino.ArduinoConnector;
+import com.example.jihun.ironman.arduino.BluetoothPairActivity;
+import com.example.jihun.ironman.arduino.PacketParser;
+
 public class MainActivity extends Activity {
     private static final String TAG = "Ironman";
     private TextView txt_speach_result_;
@@ -182,8 +186,8 @@ public class MainActivity extends Activity {
         }
 
         @Override
-        public void onReaction(ArduinoConnector.Reactions reaction, String data) {
-            if (reaction == ArduinoConnector.Reactions.ActivityDetected) {
+        public void onReaction(PacketParser.Type type, String data) {
+            if (type == PacketParser.Type.ActivityDetected) {
                 // There is a limitation that Android doesn't offer continuous speech recognition.
                 // So only when is activity detected, speech recognition starts.
                 speech_recognizer_.start();

@@ -1,4 +1,4 @@
-package com.example.jihun.ironman;
+package com.example.jihun.ironman.arduino;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;

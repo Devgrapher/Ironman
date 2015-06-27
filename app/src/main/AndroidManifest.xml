@@ -23,7 +23,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".BluetoothPairActivity"
+            android:name=".arduino.BluetoothPairActivity"
             android:label="@string/title_activity_bluetooth_pair" >
         </activity>
     </application>

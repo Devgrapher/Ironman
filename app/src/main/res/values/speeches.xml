@@ -11,6 +11,6 @@
         lights on|lite on|like on
     </string>
     <string name="command_lightoff_variant">
-        lights off|light of|like talked
+        lights off|light of|like talked|light up
     </string>
 </resources>

@@ -157,6 +157,9 @@ public class MainActivity extends Activity {
         return (int)((value + Math.abs(kSpeechMinValue)) * kSpeechMagnifyingValue);
     }
 
+    /**
+     * Listener for speech recognition.
+     */
     private SpeechRecognizerWrapper.Listener speech_recognizer_listener_ =
         new SpeechRecognizerWrapper.Listener() {
             @Override
@@ -178,6 +181,9 @@ public class MainActivity extends Activity {
         }
     };
 
+    /**
+     * Listener for Arduino.
+     */
     private ArduinoConnector.Listener arduino_listener_ = new ArduinoConnector.Listener() {
         @Override
         public void onConnect(BluetoothDevice device) {

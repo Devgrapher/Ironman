@@ -22,6 +22,7 @@ import java.util.UUID;
 public class BluetoothSerial {
     static final int kMsgConnectBluetooth = 1;
     static final int kMsgReadBluetooth = 2;
+    static final int kMsgDisconnectedBluetooth = 3;
 
     private static final String TAG = "ironman.bluetoothSerial";
     private final BluetoothAdapter bluetooth_;
@@ -213,6 +214,8 @@ public class BluetoothSerial {
                     break;
                 }
             }
+            // Notify the end of connection.
+            read_handler_.obtainMessage(kMsgDisconnectedBluetooth, 0, 0, 0).sendToTarget();
         }
     }
 
@@ -225,6 +228,9 @@ public class BluetoothSerial {
                     break;
                 case kMsgReadBluetooth:
                     listener_.onRead(device_, (byte[])msg.obj, msg.arg1);
+                    break;
+                case kMsgDisconnectedBluetooth:
+                    listener_.onDisconnect(device_);
                     break;
             }
         }

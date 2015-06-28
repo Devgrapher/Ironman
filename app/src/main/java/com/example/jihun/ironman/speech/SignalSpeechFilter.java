@@ -2,6 +2,8 @@ package com.example.jihun.ironman.speech;
 
 import android.util.Log;
 
+import java.util.ArrayList;
+
 /**
  * Recognize the signal speech, which is a speech that voice command starts with.
  *
@@ -42,15 +44,18 @@ public class SignalSpeechFilter implements SpeechListener {
     }
 
     @Override
-    public void onSpeechRecognized(String speech) {
-        if (!speech.startsWith(signal_speech_)) {
-            Log.d(TAG, "filtered: " + speech);
-            return;
+    public void onSpeechRecognized(ArrayList<String> recognitions) {
+        ArrayList<String> result_without_signal = new ArrayList<>();
+        for (String speech : recognitions) {
+            if (speech.startsWith(signal_speech_)) {
+                String signal_removed = speech.substring(signal_speech_.length());
+                result_without_signal.add(signal_removed);
+            } else {
+                Log.d(TAG, "filtered: " + speech);
+            }
         }
 
-        String signal_removed = speech.substring(signal_speech_.length());
-
         // notify with signal string.
-        speech_listener_.onSpeechRecognized(signal_removed);
+        speech_listener_.onSpeechRecognized(result_without_signal);
     }
 }

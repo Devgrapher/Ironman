@@ -59,12 +59,17 @@ public class CommandSpeechFilter implements SpeechListener {
     }
 
     @Override
-    public void onSpeechRecognized(String speech) {
-        String pattern = pattern_speeches_.get(speech);
-        if (pattern != null) {
-            speech_listener_.onSpeechRecognized(pattern);
-        } else {
-            Log.d(TAG, "filtered: " + speech);
+    public void onSpeechRecognized(ArrayList<String> recognitions) {
+        ArrayList<String> commands = new ArrayList<>();
+        for (String speech : recognitions) {
+            String pattern = pattern_speeches_.get(speech);
+
+            if (pattern != null) {
+                commands.add(pattern);
+            } else {
+                Log.d(TAG, "filtered: " + speech);
+            }
         }
+        speech_listener_.onSpeechRecognized(commands);
     }
 }

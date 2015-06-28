@@ -22,6 +22,8 @@ import com.example.jihun.ironman.speech.EnhancedSpeechRecognizer;
 import com.example.jihun.ironman.speech.SignalSpeechFilter;
 import com.example.jihun.ironman.speech.SpeechListener;
 
+import java.util.ArrayList;
+
 public class MainActivity extends Activity {
     private static final String TAG = MainActivity.class.getSimpleName();
     private TextView txt_app_status_;
@@ -146,18 +148,17 @@ public class MainActivity extends Activity {
 
     // Handles the speeches delivered by EnhancedSpeechRecognizer.
     private SpeechListener speech_listener_ = new SpeechListener() {
-        private String last_speech_ = "";
         @Override
-        public void onSpeechRecognized(String speech) {
-            if (speech.isEmpty() || last_speech_.equals(speech)) {
+        public void onSpeechRecognized(ArrayList<String> recognitions) {
+            if (recognitions.isEmpty()) {
                 return;
             }
-
-            Toast.makeText(getApplicationContext(), speech, Toast.LENGTH_SHORT).show();
-            last_speech_ = speech;
+            // Use only the first command.
+            String cmd = recognitions.get(0);
+            Toast.makeText(getApplicationContext(), cmd, Toast.LENGTH_SHORT).show();
 
             try {
-                arduinoConnector_.send(speech);
+                arduinoConnector_.send(cmd);
             } catch (Exception e) {
                 e.printStackTrace();
                 throw e;

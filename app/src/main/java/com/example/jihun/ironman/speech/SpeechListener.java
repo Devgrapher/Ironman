@@ -1,5 +1,7 @@
 package com.example.jihun.ironman.speech;
 
+import java.util.ArrayList;
+
 /**
  * Interface for listening speeches.
  *
@@ -8,6 +10,6 @@ package com.example.jihun.ironman.speech;
  * speech listener.
  */
 public interface SpeechListener {
-    // called on finish of recognizing with the list that were recognized.
-    void onSpeechRecognized(String speech);
+    // called on finish of recognizing with the list of recognized strings.
+    void onSpeechRecognized(ArrayList<String> recognitions);
 }

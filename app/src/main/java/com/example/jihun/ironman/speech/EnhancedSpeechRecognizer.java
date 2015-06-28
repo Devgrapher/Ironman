@@ -191,8 +191,8 @@ public class EnhancedSpeechRecognizer implements RecognitionListener {
         // notifies the speeches each by each.
         for (String speech : results_in_arraylist) {
             Log.d(TAG, "match: " + speech);
-            speech_listener_.onSpeechRecognized(speech);
         }
+        speech_listener_.onSpeechRecognized(results_in_arraylist);
 
         // When speech detected, start the recognition again since in this case
         // there will be a high chance that people try speech recognition more times.

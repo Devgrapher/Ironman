@@ -23,7 +23,8 @@ public class CommandSpeechFilter implements SpeechListener {
      * @return new CommandSpeechFilter object
      */
     public static CommandSpeechFilter createFromFile(String file_path, SpeechListener listener) {
-        return null;
+        // TODO: implement this.
+        throw new UnsupportedOperationException();
     }
 
     public CommandSpeechFilter(SpeechListener listener) {

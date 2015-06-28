@@ -5,7 +5,7 @@ package com.example.jihun.ironman.speech;
  *
  * Implements this interface to be notified speeches that recognized from SpeechRecognizer.
  * This is especially needed for implementing Decorator Pattern, which adds new feature in
- * speech callback.
+ * speech listener.
  */
 public interface SpeechListener {
     // called on finish of recognizing with the list that were recognized.

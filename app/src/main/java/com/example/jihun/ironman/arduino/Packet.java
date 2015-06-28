@@ -7,8 +7,6 @@ public class Packet<T> {
     public int id = -1;
     public T data = null;
 
-    public Packet() {}
-
     public Packet(Type type) {
         this.type = type;
     }

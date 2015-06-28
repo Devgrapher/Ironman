@@ -78,7 +78,6 @@ public class PacketParser {
     private String buffer_ = "";
 
     // Push a packet fragment into the packet buffer,
-    // and return true if a complete packet is available.
     public boolean pushPacketFragment(byte[] fragment, int len) {
         try {
             buffer_ += new String(fragment, "UTF-8");
@@ -87,8 +86,12 @@ public class PacketParser {
             return false;
         }
 
-        int idx = buffer_.indexOf(kPacketDelimiter);
-        return idx != -1;
+        return true;
+    }
+
+    // If there is kPacketDelimiter in the buffer, it means there's at least one packet available.
+    public boolean isPacketAvailable() {
+        return buffer_.lastIndexOf(kPacketDelimiter) != -1;
     }
 
     // Pop a packet from packet buffer.

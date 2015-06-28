@@ -137,7 +137,7 @@ public class BluetoothPairActivity extends Activity {
 
         ClearDeviceList();
         //UpdateBondedDevices();
-        DiscorverDevices();
+        DiscoverDevices();
     }
 
     private void UpdateBondedDevices() {
@@ -173,7 +173,7 @@ public class BluetoothPairActivity extends Activity {
         device_name_map_.put(name, device);
     }
 
-    private void DiscorverDevices() {
+    private void DiscoverDevices() {
         // Register the BroadcastReceiver
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         registerReceiver(receiver_, filter); // Don't forget to unregister during onDestroy

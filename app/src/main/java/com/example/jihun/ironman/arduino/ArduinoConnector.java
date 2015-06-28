@@ -37,10 +37,6 @@ public class ArduinoConnector {
         bluetooth_.askConnect(device, bluetooth_listener_);
     }
 
-    public boolean isConnected() {
-        return bluetooth_.isConnected();
-    }
-
     public void disconnect() {
         bluetooth_.cancel();
         bluetooth_ = null;
@@ -72,18 +68,22 @@ public class ArduinoConnector {
 
         @Override
         public void onRead(BluetoothDevice device, byte[] data, int len) {
+            // Store the fragment of packet until it gets a complete packet
+            // then, the return value will be true.
             if (!parser_.pushPacketFragment(data, len)) {
-                return;
+                Log.w(LOG, "packet parse error");
             }
 
-            String raw_packet = parser_.popPacket();
-            Packet<String> packet = Decoder.decodeString(raw_packet);
-            if (packet.type == PacketParser.Type.Error) {
-                Log.w(LOG, packet.toString());
-                return;
-            }
+            while (parser_.isPacketAvailable()) {
+                String raw_packet = parser_.popPacket();
+                Packet<String> packet = Decoder.decodeString(raw_packet);
+                if (packet.type == PacketParser.Type.Error) {
+                    Log.w(LOG, packet.toString());
+                    return;
+                }
 
-            listener_.onReaction(packet.type, packet.data);
+                listener_.onReaction(packet.type, packet.data);
+            }
         }
 
         @Override

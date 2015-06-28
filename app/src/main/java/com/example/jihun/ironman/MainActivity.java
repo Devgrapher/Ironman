@@ -46,19 +46,7 @@ public class MainActivity extends Activity {
         txt_app_status_ = (TextView) findViewById(R.id.textViewSpeachResult);
         updateStatusUIText(app_status_manager_.getStatus());
 
-        /* Wraps 'speech_listener_' in 'Filter classes', so that it only gets filtered speeches. */
-
-        CommandSpeechFilter cmd_filter = new CommandSpeechFilter(speech_listener_);
-        final Resources rs = getResources();
-        cmd_filter.addPattern(rs.getString(R.string.command_lighton),
-                rs.getString(R.string.command_lighton_variant));
-        cmd_filter.addPattern(rs.getString(R.string.command_lightoff),
-                rs.getString(R.string.command_lightoff_variant));
-        SignalSpeechFilter signal_filter = new SignalSpeechFilter(cmd_filter,
-                rs.getString(R.string.speech_singal));
-        speech_recognizer_ = new EnhancedSpeechRecognizer(
-                this, speech_recognizer_listener_, signal_filter);
-
+        speech_recognizer_ = buildSpeechRecognizer();
         arduinoConnector_ = new ArduinoConnector(arduino_listener_);
     }
 
@@ -70,6 +58,34 @@ public class MainActivity extends Activity {
                 new int[] {0xFFF0FAFF,0xFFA3E0FF});
         gd.setCornerRadius(0f);
         layout.setBackground(gd);
+    }
+
+    /**
+     * Build EnhancedSpeechRecognizer.
+     *
+     * In the process of building, it connects filters, such as command and signal filter, at the listener.
+     * SpeechRecognizer will end up delivering only filtered events via its listener.
+     *
+     * - Listener chain order.
+     * Listener of EnhancesSpeechRecognizer -> SignalSpeechFilter -> CommandSpeechFilter
+     */
+    private EnhancedSpeechRecognizer buildSpeechRecognizer() {
+        /*
+        Build listener chain in reverse order of event deliver order.
+         */
+        CommandSpeechFilter cmd_filter = new CommandSpeechFilter(speech_listener_);
+        // Add commands that it will listen for.
+        final Resources rs = getResources();
+        cmd_filter.addPattern(rs.getString(R.string.command_lighton),
+                rs.getString(R.string.command_lighton_variant));
+        cmd_filter.addPattern(rs.getString(R.string.command_lightoff),
+                rs.getString(R.string.command_lightoff_variant));
+
+        SignalSpeechFilter signal_filter = new SignalSpeechFilter(cmd_filter, // connect cmd_filter.
+                rs.getString(R.string.speech_singal));
+
+        return new EnhancedSpeechRecognizer(this, speech_recognizer_listener_,
+                signal_filter); // connect signal_filter.
     }
 
     @Override
@@ -130,11 +146,16 @@ public class MainActivity extends Activity {
 
     // Handles the speeches delivered by EnhancedSpeechRecognizer.
     private SpeechListener speech_listener_ = new SpeechListener() {
+        private String last_speech_ = "";
         @Override
         public void onSpeechRecognized(String speech) {
-            if (speech.isEmpty())
+            if (speech.isEmpty() || last_speech_.equals(speech)) {
                 return;
-            txt_app_status_.setText(speech);
+            }
+
+            Toast.makeText(getApplicationContext(), speech, Toast.LENGTH_SHORT).show();
+            last_speech_ = speech;
+
             try {
                 arduinoConnector_.send(speech);
             } catch (Exception e) {

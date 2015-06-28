@@ -23,7 +23,7 @@ import com.example.jihun.ironman.speech.SignalSpeechFilter;
 import com.example.jihun.ironman.speech.SpeechListener;
 
 public class MainActivity extends Activity {
-    private static final String TAG = "Ironman";
+    private static final String TAG = MainActivity.class.getSimpleName();
     private TextView txt_app_status_;
     private ProgressBar progress_bar_;
     private EnhancedSpeechRecognizer speech_recognizer_;

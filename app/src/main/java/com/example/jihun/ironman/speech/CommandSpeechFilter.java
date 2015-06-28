@@ -10,7 +10,7 @@ import java.util.StringTokenizer;
  * Filters the speeches delivered by SpeechListener, using the designated speeches in advance.
  */
 public class CommandSpeechFilter implements SpeechListener {
-    private String TAG = "Ironman.CommandSpeechFilter";
+    private String TAG = CommandSpeechFilter.class.getSimpleName();
     private SpeechListener speech_listener_;
     private HashMap<String, String> pattern_speeches_ = new HashMap<>();
 

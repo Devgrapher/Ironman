@@ -8,7 +8,7 @@ import android.util.Log;
  * It delivers only the speeches that start with signal speech, to the next SpeechListener.
  */
 public class SignalSpeechFilter implements SpeechListener {
-    private String TAG = "Ironman.SignalSpeechFilter";
+    private String TAG = SignalSpeechFilter.class.getSimpleName();
     private SpeechListener speech_listener_;
     private String signal_speech_;
 

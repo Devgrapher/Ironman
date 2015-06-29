@@ -24,7 +24,7 @@ public class BluetoothSerial {
     static final int kMsgReadBluetooth = 2;
     static final int kMsgDisconnectedBluetooth = 3;
 
-    private static final String TAG = "ironman.bluetoothSerial";
+    private static final String TAG = BluetoothSerial.class.getSimpleName();
     private final BluetoothAdapter bluetooth_;
     private ConnectThread connect_thread_;
     private ReadThread read_thread_;

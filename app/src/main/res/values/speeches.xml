@@ -8,9 +8,9 @@
     <!--  These are variations of the command speech
         this is for increasing recognition accuracy. -->
     <string name="command_lighton_variant">
-        lights on|lite on|like on
+        lights on|lite on|like on|lighten
     </string>
     <string name="command_lightoff_variant">
-        lights off|light of|like talked|light up
+        lights off|light of|like talked|light up|night off
     </string>
 </resources>

@@ -10,7 +10,7 @@ import java.util.StringTokenizer;
  * Filters the speeches delivered by SpeechListener, using the designated speeches in advance.
  */
 public class CommandSpeechFilter implements SpeechListener {
-    private String TAG = "Ironman.CommandSpeechFilter";
+    private String TAG = CommandSpeechFilter.class.getSimpleName();
     private SpeechListener speech_listener_;
     private HashMap<String, String> pattern_speeches_ = new HashMap<>();
 
@@ -23,7 +23,8 @@ public class CommandSpeechFilter implements SpeechListener {
      * @return new CommandSpeechFilter object
      */
     public static CommandSpeechFilter createFromFile(String file_path, SpeechListener listener) {
-        return null;
+        // TODO: implement this.
+        throw new UnsupportedOperationException();
     }
 
     public CommandSpeechFilter(SpeechListener listener) {
@@ -58,12 +59,17 @@ public class CommandSpeechFilter implements SpeechListener {
     }
 
     @Override
-    public void onSpeechRecognized(String speech) {
-        String pattern = pattern_speeches_.get(speech);
-        if (pattern != null) {
-            speech_listener_.onSpeechRecognized(pattern);
-        } else {
-            Log.d(TAG, "filtered: " + speech);
+    public void onSpeechRecognized(ArrayList<String> recognitions) {
+        ArrayList<String> commands = new ArrayList<>();
+        for (String speech : recognitions) {
+            String pattern = pattern_speeches_.get(speech);
+
+            if (pattern != null) {
+                commands.add(pattern);
+            } else {
+                Log.d(TAG, "filtered: " + speech);
+            }
         }
+        speech_listener_.onSpeechRecognized(commands);
     }
 }

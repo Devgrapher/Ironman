@@ -1,10 +1,10 @@
 # Ironman
-Android voice recognition app.
+Google voice recognition with Arduino.
+
+This android app controls Arduino by voice recognition.
 
 ## Arduino
-This project consist of Android app and arduino sketch.
-
 Location of Arduino sketch : /Arduino/ironoman.ino
 
-## link
+## Details
 http://devgrapher.com/?p=22476

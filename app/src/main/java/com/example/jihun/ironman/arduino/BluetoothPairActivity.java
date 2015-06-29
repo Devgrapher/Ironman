@@ -31,7 +31,7 @@ import java.util.Set;
  * Lists out the bluetooth devices and connects them.
  */
 public class BluetoothPairActivity extends Activity {
-    private static final String TAG = "ironman.bluetooth";
+    private static final String TAG = BluetoothPairActivity.class.getSimpleName();
     private ListView listview_devices_;
     private Button device_refresh_;
     private Set<BluetoothDevice> paired_devices_;

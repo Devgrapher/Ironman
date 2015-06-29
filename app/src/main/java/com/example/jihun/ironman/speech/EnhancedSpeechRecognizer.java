@@ -31,7 +31,7 @@ import java.util.ArrayList;
 public class EnhancedSpeechRecognizer implements RecognitionListener {
     private static final int kMsgRecognizerStart = 1;
     private static final int kMsgRecognizerStop = 2;
-    private static final String TAG = "Ironman.SR";
+    private static final String TAG = EnhancedSpeechRecognizer.class.getSimpleName();
 
     // Max speech value from SpeechRecognizer
     public static final float kSpeechMinValue = -2.12f;
@@ -191,8 +191,8 @@ public class EnhancedSpeechRecognizer implements RecognitionListener {
         // notifies the speeches each by each.
         for (String speech : results_in_arraylist) {
             Log.d(TAG, "match: " + speech);
-            speech_listener_.onSpeechRecognized(speech);
         }
+        speech_listener_.onSpeechRecognized(results_in_arraylist);
 
         // When speech detected, start the recognition again since in this case
         // there will be a high chance that people try speech recognition more times.
